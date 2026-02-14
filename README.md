@@ -1,6 +1,6 @@
-# MisInfoShield - Multi-Source Misinformation & Social Risk Early Warning System
+# SatyaSetu - Bridge of Truth | Multi-Source Misinformation Detection
 
-An AI-powered system that detects misinformation, predicts viral amplification, and estimates real-world societal impact.
+An AI-powered system that detects misinformation, predicts viral amplification, and estimates real-world societal impact. SatyaSetu (Sanskrit: "Bridge of Truth") connects truth-seekers with accurate information.
 
 ## 🚀 Quick Start
 
