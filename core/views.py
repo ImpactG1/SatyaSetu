@@ -480,10 +480,13 @@ def forecast_api(request):
             return JsonResponse({'error': 'Title is required for forecasting'}, status=400)
 
         from .services.groq_service import GroqReasoningService
-        groq = GroqReasoningService()
+        groq = GroqReasoningService(api_key=getattr(settings, 'GROQ_API_KEY', None))
 
         if not groq.is_available:
+            logger.error('Forecast: Groq API key not found in env or settings')
             return JsonResponse({'error': 'Forecast service unavailable — Groq API key not configured'}, status=503)
+
+        logger.info(f'Forecast: generating for "{title[:60]}" (risk={risk_level}, ml={ml})')
 
         forecast = groq.generate_forecast(
             title=title,
@@ -497,8 +500,10 @@ def forecast_api(request):
         )
 
         if not forecast:
+            logger.error('Forecast: Groq returned None — LLM call or JSON parse failed')
             return JsonResponse({'error': 'Failed to generate forecast — try again'}, status=500)
 
+        logger.info(f'Forecast: success — {len(forecast.get("scenarios", []))} scenarios')
         return JsonResponse({
             'success': True,
             'forecast': forecast,

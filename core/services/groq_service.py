@@ -52,13 +52,18 @@ class GroqReasoningService:
             }
 
             response = requests.post(self.API_URL, headers=headers, json=payload, timeout=30)
-            response.raise_for_status()
+
+            if response.status_code != 200:
+                logger.error(f"Groq API returned {response.status_code}: {response.text[:300]}")
+                return None
 
             data = response.json()
-            return data["choices"][0]["message"]["content"].strip()
+            content = data["choices"][0]["message"]["content"].strip()
+            logger.debug(f"Groq API response ({len(content)} chars): {content[:100]}...")
+            return content
 
         except requests.Timeout:
-            logger.error("Groq API request timed out")
+            logger.error("Groq API request timed out (30s)")
             return None
         except requests.RequestException as e:
             logger.error(f"Groq API request failed: {e}")
@@ -308,34 +313,61 @@ Rules:
         ], temperature=0.4, max_tokens=600)
 
         if not raw:
+            logger.error("Forecast: Groq returned empty response")
             return None
 
         try:
             # Strip markdown code fences if present
             cleaned = raw.strip()
+            # Handle ```json ... ``` or ``` ... ```
             if cleaned.startswith("```"):
-                cleaned = cleaned.split("\n", 1)[1] if "\n" in cleaned else cleaned[3:]
-                if cleaned.endswith("```"):
-                    cleaned = cleaned[:-3]
-                cleaned = cleaned.strip()
+                # Remove opening fence line
+                first_newline = cleaned.find("\n")
+                if first_newline != -1:
+                    cleaned = cleaned[first_newline + 1:]
+                else:
+                    cleaned = cleaned[3:]
+            if cleaned.endswith("```"):
+                cleaned = cleaned[:-3]
+            cleaned = cleaned.strip()
+            # Handle leading "json" keyword without fence
             if cleaned.startswith("json"):
                 cleaned = cleaned[4:].strip()
+
+            # Find the JSON object boundaries
+            start = cleaned.find("{")
+            end = cleaned.rfind("}")
+            if start != -1 and end != -1 and end > start:
+                cleaned = cleaned[start:end + 1]
 
             result = json.loads(cleaned)
 
             # Validate structure
             if "scenarios" not in result or not isinstance(result["scenarios"], list):
-                logger.error("Forecast response missing scenarios array")
+                logger.error(f"Forecast response missing scenarios array. Keys: {list(result.keys())}")
                 return None
 
+            # Ensure each scenario has required fields
+            for i, s in enumerate(result["scenarios"]):
+                s.setdefault("title", f"Scenario {i+1}")
+                s.setdefault("description", "No description available.")
+                s.setdefault("probability", 33)
+
             # Ensure probabilities sum to 100
-            total = sum(s.get("probability", 0) for s in result["scenarios"])
+            total = sum(s["probability"] for s in result["scenarios"])
             if total != 100 and total > 0:
                 for s in result["scenarios"]:
-                    s["probability"] = round(s.get("probability", 0) * 100 / total)
+                    s["probability"] = round(s["probability"] * 100 / total)
 
+            result.setdefault("timeframe", "7-14 days")
+            result.setdefault("summary", "")
+
+            logger.info(f"Forecast parsed OK: {len(result['scenarios'])} scenarios")
             return result
 
         except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse forecast JSON: {e} — raw: {raw[:200]}")
+            logger.error(f"Failed to parse forecast JSON: {e} — raw: {raw[:300]}")
+            return None
+        except Exception as e:
+            logger.error(f"Unexpected error parsing forecast: {e}")
             return None
