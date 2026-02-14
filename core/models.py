@@ -35,6 +35,8 @@ class Content(models.Model):
         ('article', 'News Article'),
         ('claim', 'Claim / Statement'),
         ('social', 'Social Media Post'),
+        ('image', 'Image / Screenshot'),
+        ('audio', 'Audio Clip'),
         ('other', 'Other'),
     ]
     
@@ -45,6 +47,12 @@ class Content(models.Model):
     author = models.CharField(max_length=255, blank=True, null=True)
     published_date = models.DateTimeField(null=True, blank=True)
     source = models.ForeignKey(Source, on_delete=models.CASCADE, related_name='contents')
+    
+    # Media file for image/audio uploads
+    media_file = models.FileField(upload_to='uploads/%Y/%m/%d/', blank=True, null=True)
+    extracted_text = models.TextField(blank=True, default='')  # OCR or transcription output
+    extraction_confidence = models.FloatField(default=0.0)  # OCR/STT confidence score
+    extraction_metadata = models.JSONField(default=dict, blank=True)  # Additional extraction info
     
     # Aggregated from multiple sources
     related_urls = models.JSONField(default=list, blank=True)  # Links to related content

@@ -276,41 +276,177 @@
             </div>
         </div>
 
-        <!-- ═══════════ SECTION 2: Content Analyzer ═══════════ -->
+        <!-- ═══════════ SECTION 2: Content Analyzer (Tabbed: Text / Image / Audio) ═══════════ -->
         <div class="glass rounded-2xl p-6 mb-8">
             <div class="flex items-center justify-between mb-5">
                 <div>
                     <h2 class="text-lg font-bold text-white">Analyze Content</h2>
-                    <p class="text-xs text-dark-500 mt-0.5">Paste any article or claim — AI will scrape the web for real source verification</p>
+                    <p class="text-xs text-dark-500 mt-0.5">Analyze text, images, or audio for misinformation</p>
                 </div>
                 <div class="flex items-center gap-2">
                     <span class="px-2.5 py-1 rounded-lg bg-indigo-500/10 text-indigo-400 text-xs font-medium flex items-center gap-1.5">
                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/></svg>
-                        Web Scraping Active
+                        AI Detection Active
                     </span>
                 </div>
             </div>
-            <div class="grid md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-xs font-medium text-dark-400 mb-1.5">Content Title</label>
-                    <input type="text" id="contentTitle" placeholder="Enter article title..." class="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white text-sm placeholder-dark-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-dark-400 mb-1.5">Source URL <span class="text-dark-600">(optional)</span></label>
-                    <input type="text" id="contentUrl" placeholder="https://..." class="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white text-sm placeholder-dark-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all">
-                </div>
-                <div class="md:col-span-2">
-                    <label class="block text-xs font-medium text-dark-400 mb-1.5">Content Text</label>
-                    <textarea id="contentText" rows="3" placeholder="Paste the article content here..." class="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white text-sm placeholder-dark-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all resize-none"></textarea>
-                </div>
-                <div class="md:col-span-2">
-                    <button id="analyzeBtn" onclick="analyzeContent()" class="w-full px-6 py-3 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-medium text-sm transition-all shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                        Analyze Content
-                    </button>
+
+            <!-- Analysis Mode Tabs -->
+            <div class="flex gap-1 mb-5 p-1 bg-white/5 rounded-xl w-fit">
+                <button onclick="switchAnalysisTab('text')" id="tabText" class="px-4 py-2 rounded-lg text-sm font-medium transition-all bg-indigo-500/20 text-indigo-400">
+                    <span class="flex items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        Text
+                    </span>
+                </button>
+                <button onclick="switchAnalysisTab('image')" id="tabImage" class="px-4 py-2 rounded-lg text-sm font-medium transition-all text-dark-500 hover:text-dark-300">
+                    <span class="flex items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        Image
+                    </span>
+                </button>
+                <button onclick="switchAnalysisTab('audio')" id="tabAudio" class="px-4 py-2 rounded-lg text-sm font-medium transition-all text-dark-500 hover:text-dark-300">
+                    <span class="flex items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
+                        Audio
+                    </span>
+                </button>
+            </div>
+
+            <!-- TEXT Analysis Panel -->
+            <div id="panelText" class="analysis-panel">
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-dark-400 mb-1.5">Content Title</label>
+                        <input type="text" id="contentTitle" placeholder="Enter article title..." class="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white text-sm placeholder-dark-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-dark-400 mb-1.5">Source URL <span class="text-dark-600">(optional)</span></label>
+                        <input type="text" id="contentUrl" placeholder="https://..." class="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white text-sm placeholder-dark-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-medium text-dark-400 mb-1.5">Content Text</label>
+                        <textarea id="contentText" rows="3" placeholder="Paste the article content here..." class="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white text-sm placeholder-dark-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all resize-none"></textarea>
+                    </div>
+                    <div class="md:col-span-2">
+                        <button id="analyzeBtn" onclick="analyzeContent()" class="w-full px-6 py-3 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-medium text-sm transition-all shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                            Analyze Content
+                        </button>
+                    </div>
                 </div>
             </div>
-            <!-- Inline Analysis Result (shows after analysis) -->
+
+            <!-- IMAGE Analysis Panel -->
+            <div id="panelImage" class="analysis-panel hidden">
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-medium text-dark-400 mb-1.5">Title <span class="text-dark-600">(optional)</span></label>
+                        <input type="text" id="imageTitle" placeholder="Describe the image content..." class="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white text-sm placeholder-dark-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-medium text-dark-400 mb-1.5">Upload Image / Screenshot</label>
+                        <div id="imageDropZone" class="relative w-full border-2 border-dashed border-white/10 rounded-xl p-8 text-center hover:border-indigo-500/50 transition-all cursor-pointer group" onclick="document.getElementById('imageFileInput').click()" ondrop="handleImageDrop(event)" ondragover="event.preventDefault(); this.classList.add('border-indigo-500/50', 'bg-indigo-500/5')" ondragleave="this.classList.remove('border-indigo-500/50', 'bg-indigo-500/5')">
+                            <input type="file" id="imageFileInput" accept="image/*" class="hidden" onchange="handleImageSelect(this)">
+                            <div id="imagePreviewArea">
+                                <svg class="w-10 h-10 mx-auto mb-3 text-dark-600 group-hover:text-indigo-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                <p class="text-sm text-dark-400 group-hover:text-dark-300 transition-colors">Drop an image here or <span class="text-indigo-400">click to browse</span></p>
+                                <p class="text-xs text-dark-600 mt-1">PNG, JPG, BMP, TIFF, WebP — max 25MB</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="md:col-span-2">
+                        <button id="analyzeImageBtn" onclick="analyzeImage()" disabled class="w-full px-6 py-3 rounded-lg bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-medium text-sm transition-all shadow-lg shadow-violet-500/20 flex items-center justify-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            Extract Text &amp; Analyze Image
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AUDIO Analysis Panel -->
+            <div id="panelAudio" class="analysis-panel hidden">
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-medium text-dark-400 mb-1.5">Title <span class="text-dark-600">(optional)</span></label>
+                        <input type="text" id="audioTitle" placeholder="Describe the audio content..." class="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white text-sm placeholder-dark-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-medium text-dark-400 mb-1.5">Upload or Record Audio</label>
+                        <!-- Audio source toggle -->
+                        <div class="flex gap-2 mb-3">
+                            <button onclick="showAudioMode('upload')" id="audioModeUpload" class="flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all bg-cyan-500/15 text-cyan-400 border border-cyan-500/20 flex items-center justify-center gap-1.5">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                                Upload File
+                            </button>
+                            <button onclick="showAudioMode('record')" id="audioModeRecord" class="flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all text-dark-500 hover:text-dark-300 border border-white/5 flex items-center justify-center gap-1.5">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
+                                Record Mic
+                            </button>
+                        </div>
+                        <!-- Upload mode -->
+                        <div id="audioUploadMode">
+                            <div id="audioDropZone" class="relative w-full border-2 border-dashed border-white/10 rounded-xl p-8 text-center hover:border-cyan-500/50 transition-all cursor-pointer group" onclick="document.getElementById('audioFileInput').click()" ondrop="handleAudioDrop(event)" ondragover="event.preventDefault(); this.classList.add('border-cyan-500/50', 'bg-cyan-500/5')" ondragleave="this.classList.remove('border-cyan-500/50', 'bg-cyan-500/5')">
+                                <input type="file" id="audioFileInput" accept="audio/*,.wav,.mp3,.ogg,.flac,.m4a,.wma,.aac,.webm" class="hidden" onchange="handleAudioSelect(this)">
+                                <div id="audioPreviewArea">
+                                    <svg class="w-10 h-10 mx-auto mb-3 text-dark-600 group-hover:text-cyan-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
+                                    <p class="text-sm text-dark-400 group-hover:text-dark-300 transition-colors">Drop an audio file here or <span class="text-cyan-400">click to browse</span></p>
+                                    <p class="text-xs text-dark-600 mt-1">WAV, MP3, OGG, FLAC, M4A, WebM — max 25MB</p>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Record mode -->
+                        <div id="audioRecordMode" class="hidden">
+                            <div class="w-full border-2 border-dashed border-white/10 rounded-xl p-8 text-center transition-all" id="recordZone">
+                                <div id="recordUI">
+                                    <!-- Idle state -->
+                                    <div id="recordIdle">
+                                        <button onclick="startRecording()" class="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-rose-500 to-pink-600 hover:from-rose-400 hover:to-pink-500 shadow-lg shadow-rose-500/30 flex items-center justify-center transition-all hover:scale-105 active:scale-95">
+                                            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
+                                        </button>
+                                        <p class="text-sm text-dark-400 mt-3">Click to start recording</p>
+                                        <p class="text-xs text-dark-600 mt-1">Uses your microphone · max 5 minutes</p>
+                                    </div>
+                                    <!-- Recording state -->
+                                    <div id="recordActive" class="hidden">
+                                        <div class="flex flex-col items-center gap-3">
+                                            <div class="relative">
+                                                <div class="w-20 h-20 rounded-full bg-rose-500/20 flex items-center justify-center animate-pulse">
+                                                    <div class="w-14 h-14 rounded-full bg-rose-500/30 flex items-center justify-center">
+                                                        <div class="w-5 h-5 rounded-sm bg-white"></div>
+                                                    </div>
+                                                </div>
+                                                <span class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 animate-ping"></span>
+                                            </div>
+                                            <div class="text-center">
+                                                <p class="text-base font-mono text-rose-400 font-bold" id="recordTimer">00:00</p>
+                                                <p class="text-xs text-dark-500 mt-0.5">Recording...</p>
+                                            </div>
+                                            <div class="flex items-center gap-3">
+                                                <button onclick="stopRecording()" class="px-5 py-2 rounded-lg bg-rose-500/20 text-rose-400 text-sm font-medium hover:bg-rose-500/30 transition-all flex items-center gap-1.5">
+                                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+                                                    Stop
+                                                </button>
+                                                <button onclick="cancelRecording()" class="px-4 py-2 rounded-lg text-dark-500 text-sm hover:text-dark-300 transition-all">Cancel</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Recorded preview -->
+                                    <div id="recordPreview" class="hidden"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="md:col-span-2">
+                        <button id="analyzeAudioBtn" onclick="analyzeAudio()" disabled class="w-full px-6 py-3 rounded-lg bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-medium text-sm transition-all shadow-lg shadow-cyan-500/20 flex items-center justify-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
+                            Transcribe &amp; Analyze Audio
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Inline Analysis Result (shows after analysis - shared across all tabs) -->
             <div id="analysisResult" class="hidden"></div>
         </div>
 
@@ -584,6 +720,411 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => { arc.style.strokeDashoffset = offset; }, 300);
     }
 });
+
+// ──────── Analysis Tab Switching ────────
+let currentAnalysisTab = 'text';
+let selectedImageFile = null;
+let selectedAudioFile = null;
+
+function switchAnalysisTab(tab) {
+    currentAnalysisTab = tab;
+    // Update tab buttons
+    ['text', 'image', 'audio'].forEach(t => {
+        const btn = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1));
+        const panel = document.getElementById('panel' + t.charAt(0).toUpperCase() + t.slice(1));
+        if (t === tab) {
+            btn.className = 'px-4 py-2 rounded-lg text-sm font-medium transition-all bg-indigo-500/20 text-indigo-400';
+            panel.classList.remove('hidden');
+        } else {
+            btn.className = 'px-4 py-2 rounded-lg text-sm font-medium transition-all text-dark-500 hover:text-dark-300';
+            panel.classList.add('hidden');
+        }
+    });
+    // Hide previous results when switching tabs
+    document.getElementById('analysisResult').className = 'hidden';
+}
+
+// ──────── Image Upload Handling ────────
+function handleImageSelect(input) {
+    if (input.files && input.files[0]) {
+        selectedImageFile = input.files[0];
+        showImagePreview(selectedImageFile);
+        document.getElementById('analyzeImageBtn').disabled = false;
+    }
+}
+
+function handleImageDrop(event) {
+    event.preventDefault();
+    event.currentTarget.classList.remove('border-indigo-500/50', 'bg-indigo-500/5');
+    const file = event.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) {
+        selectedImageFile = file;
+        document.getElementById('imageFileInput').files = event.dataTransfer.files;
+        showImagePreview(selectedImageFile);
+        document.getElementById('analyzeImageBtn').disabled = false;
+    }
+}
+
+function showImagePreview(file) {
+    const preview = document.getElementById('imagePreviewArea');
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        preview.innerHTML = `
+            <div class="flex items-center gap-4">
+                <img src="${e.target.result}" class="w-24 h-24 rounded-lg object-cover border border-white/10">
+                <div class="text-left">
+                    <p class="text-sm text-white font-medium">${file.name}</p>
+                    <p class="text-xs text-dark-500">${(file.size / 1024).toFixed(1)} KB · ${file.type}</p>
+                    <button onclick="event.stopPropagation(); clearImageFile()" class="text-xs text-rose-400 hover:text-rose-300 mt-1">Remove</button>
+                </div>
+            </div>`;
+    };
+    reader.readAsDataURL(file);
+}
+
+function clearImageFile() {
+    selectedImageFile = null;
+    document.getElementById('imageFileInput').value = '';
+    document.getElementById('analyzeImageBtn').disabled = true;
+    document.getElementById('imagePreviewArea').innerHTML = `
+        <svg class="w-10 h-10 mx-auto mb-3 text-dark-600 group-hover:text-indigo-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        <p class="text-sm text-dark-400">Drop an image here or <span class="text-indigo-400">click to browse</span></p>
+        <p class="text-xs text-dark-600 mt-1">PNG, JPG, BMP, TIFF, WebP — max 25MB</p>`;
+}
+
+// ──────── Audio Mode Toggle ────────
+function showAudioMode(mode) {
+    const uploadEl = document.getElementById('audioUploadMode');
+    const recordEl = document.getElementById('audioRecordMode');
+    const btnUpload = document.getElementById('audioModeUpload');
+    const btnRecord = document.getElementById('audioModeRecord');
+    if (mode === 'upload') {
+        uploadEl.classList.remove('hidden');
+        recordEl.classList.add('hidden');
+        btnUpload.className = 'flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all bg-cyan-500/15 text-cyan-400 border border-cyan-500/20 flex items-center justify-center gap-1.5';
+        btnRecord.className = 'flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all text-dark-500 hover:text-dark-300 border border-white/5 flex items-center justify-center gap-1.5';
+    } else {
+        uploadEl.classList.add('hidden');
+        recordEl.classList.remove('hidden');
+        btnUpload.className = 'flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all text-dark-500 hover:text-dark-300 border border-white/5 flex items-center justify-center gap-1.5';
+        btnRecord.className = 'flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all bg-cyan-500/15 text-cyan-400 border border-cyan-500/20 flex items-center justify-center gap-1.5';
+    }
+}
+
+// ──────── Audio Upload Handling ────────
+function handleAudioSelect(input) {
+    if (input.files && input.files[0]) {
+        selectedAudioFile = input.files[0];
+        showAudioPreview(selectedAudioFile);
+        document.getElementById('analyzeAudioBtn').disabled = false;
+    }
+}
+
+function handleAudioDrop(event) {
+    event.preventDefault();
+    event.currentTarget.classList.remove('border-cyan-500/50', 'bg-cyan-500/5');
+    const file = event.dataTransfer.files[0];
+    if (file && (file.type.startsWith('audio/') || file.name.match(/\.(wav|mp3|ogg|flac|m4a|wma|aac|webm)$/i))) {
+        selectedAudioFile = file;
+        document.getElementById('audioFileInput').files = event.dataTransfer.files;
+        showAudioPreview(selectedAudioFile);
+        document.getElementById('analyzeAudioBtn').disabled = false;
+    }
+}
+
+function showAudioPreview(file) {
+    const preview = document.getElementById('audioPreviewArea');
+    const audioURL = URL.createObjectURL(file);
+    preview.innerHTML = `
+        <div class="flex flex-col items-center gap-3">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-xl bg-cyan-500/10 flex items-center justify-center">
+                    <svg class="w-6 h-6 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/></svg>
+                </div>
+                <div class="text-left">
+                    <p class="text-sm text-white font-medium">${file.name}</p>
+                    <p class="text-xs text-dark-500">${(file.size / 1024).toFixed(1)} KB · ${file.type || 'audio'}</p>
+                </div>
+                <button onclick="event.stopPropagation(); clearAudioFile()" class="text-xs text-rose-400 hover:text-rose-300 ml-2">Remove</button>
+            </div>
+            <audio controls src="${audioURL}" class="w-full max-w-md h-8 mt-1" style="filter: invert(1) hue-rotate(180deg) brightness(0.8);"></audio>
+        </div>`;
+}
+
+function clearAudioFile() {
+    selectedAudioFile = null;
+    document.getElementById('audioFileInput').value = '';
+    document.getElementById('analyzeAudioBtn').disabled = true;
+    document.getElementById('audioPreviewArea').innerHTML = `
+        <svg class="w-10 h-10 mx-auto mb-3 text-dark-600 group-hover:text-cyan-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
+        <p class="text-sm text-dark-400">Drop an audio file here or <span class="text-cyan-400">click to browse</span></p>
+        <p class="text-xs text-dark-600 mt-1">WAV, MP3, OGG, FLAC, M4A, WebM — max 25MB</p>`;
+}
+
+// ──────── Audio Recording (WAV via AudioContext) ────────
+let recordTimerInterval = null;
+let recordStartTime = null;
+let audioContext = null;
+let audioStreamSource = null;
+let scriptProcessor = null;
+let recordedPCM = [];
+let recordStream = null;
+const MAX_RECORD_SECONDS = 300; // 5 minutes
+const RECORD_SAMPLE_RATE = 16000;
+
+// Encode raw PCM float32 samples into a WAV Blob
+function encodeWAV(samples, sampleRate) {
+    const buffer = new ArrayBuffer(44 + samples.length * 2);
+    const view = new DataView(buffer);
+    function writeStr(offset, str) { for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i)); }
+    writeStr(0, 'RIFF');
+    view.setUint32(4, 36 + samples.length * 2, true);
+    writeStr(8, 'WAVE');
+    writeStr(12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true); // PCM
+    view.setUint16(22, 1, true); // mono
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * 2, true); // byte rate
+    view.setUint16(32, 2, true); // block align
+    view.setUint16(34, 16, true); // bits per sample
+    writeStr(36, 'data');
+    view.setUint32(40, samples.length * 2, true);
+    // Convert float32 [-1,1] to int16
+    for (let i = 0; i < samples.length; i++) {
+        const s = Math.max(-1, Math.min(1, samples[i]));
+        view.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+    }
+    return new Blob([view], { type: 'audio/wav' });
+}
+
+// Downsample from source rate to target rate
+function downsample(buffer, fromRate, toRate) {
+    if (fromRate === toRate) return buffer;
+    const ratio = fromRate / toRate;
+    const len = Math.round(buffer.length / ratio);
+    const result = new Float32Array(len);
+    for (let i = 0; i < len; i++) {
+        const idx = Math.round(i * ratio);
+        result[i] = buffer[Math.min(idx, buffer.length - 1)];
+    }
+    return result;
+}
+
+async function startRecording() {
+    try {
+        recordStream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, sampleRate: RECORD_SAMPLE_RATE } });
+        recordedPCM = [];
+
+        audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: audioContext ? undefined : undefined });
+        audioStreamSource = audioContext.createMediaStreamSource(recordStream);
+
+        // Use ScriptProcessorNode (widely supported) to capture raw PCM
+        const bufferSize = 4096;
+        scriptProcessor = audioContext.createScriptProcessor(bufferSize, 1, 1);
+        scriptProcessor.onaudioprocess = (e) => {
+            const data = e.inputBuffer.getChannelData(0);
+            recordedPCM.push(new Float32Array(data));
+        };
+        audioStreamSource.connect(scriptProcessor);
+        scriptProcessor.connect(audioContext.destination);
+
+        recordStartTime = Date.now();
+
+        // Show recording UI
+        document.getElementById('recordIdle').classList.add('hidden');
+        document.getElementById('recordActive').classList.remove('hidden');
+        document.getElementById('recordPreview').classList.add('hidden');
+        document.getElementById('recordZone').classList.add('border-rose-500/30');
+        document.getElementById('recordZone').classList.remove('border-white/10');
+
+        // Timer
+        updateRecordTimer();
+        recordTimerInterval = setInterval(() => {
+            updateRecordTimer();
+            const elapsed = (Date.now() - recordStartTime) / 1000;
+            if (elapsed >= MAX_RECORD_SECONDS) stopRecording();
+        }, 500);
+
+    } catch (err) {
+        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+            alert('Microphone access denied. Please allow microphone access in your browser settings.');
+        } else {
+            alert('Could not access microphone: ' + err.message);
+        }
+    }
+}
+
+function stopRecording() {
+    clearInterval(recordTimerInterval);
+
+    // Disconnect audio nodes
+    if (scriptProcessor) { scriptProcessor.disconnect(); scriptProcessor = null; }
+    if (audioStreamSource) { audioStreamSource.disconnect(); audioStreamSource = null; }
+    if (recordStream) { recordStream.getTracks().forEach(t => t.stop()); recordStream = null; }
+
+    document.getElementById('recordActive').classList.add('hidden');
+    document.getElementById('recordZone').classList.remove('border-rose-500/30');
+    document.getElementById('recordZone').classList.add('border-white/10');
+
+    if (recordedPCM.length === 0) return;
+
+    // Merge all PCM chunks
+    const totalLength = recordedPCM.reduce((acc, buf) => acc + buf.length, 0);
+    const merged = new Float32Array(totalLength);
+    let offset = 0;
+    for (const buf of recordedPCM) { merged.set(buf, offset); offset += buf.length; }
+
+    // Downsample to 16kHz for speech recognition
+    const nativeSR = audioContext ? audioContext.sampleRate : 44100;
+    const downsampled = downsample(merged, nativeSR, RECORD_SAMPLE_RATE);
+    const wavBlob = encodeWAV(downsampled, RECORD_SAMPLE_RATE);
+
+    if (audioContext) { audioContext.close(); audioContext = null; }
+
+    const file = new File([wavBlob], `recording_${Date.now()}.wav`, { type: 'audio/wav' });
+    selectedAudioFile = file;
+    showRecordedPreview(file);
+    document.getElementById('analyzeAudioBtn').disabled = false;
+}
+
+function cancelRecording() {
+    recordedPCM = [];
+    clearInterval(recordTimerInterval);
+    if (scriptProcessor) { scriptProcessor.disconnect(); scriptProcessor = null; }
+    if (audioStreamSource) { audioStreamSource.disconnect(); audioStreamSource = null; }
+    if (recordStream) { recordStream.getTracks().forEach(t => t.stop()); recordStream = null; }
+    if (audioContext) { audioContext.close(); audioContext = null; }
+    selectedAudioFile = null;
+    document.getElementById('analyzeAudioBtn').disabled = true;
+    document.getElementById('recordActive').classList.add('hidden');
+    document.getElementById('recordPreview').classList.add('hidden');
+    document.getElementById('recordIdle').classList.remove('hidden');
+    document.getElementById('recordZone').classList.remove('border-rose-500/30');
+    document.getElementById('recordZone').classList.add('border-white/10');
+}
+
+function updateRecordTimer() {
+    const elapsed = Math.floor((Date.now() - recordStartTime) / 1000);
+    const mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
+    const secs = String(elapsed % 60).padStart(2, '0');
+    document.getElementById('recordTimer').textContent = `${mins}:${secs}`;
+}
+
+function showRecordedPreview(file) {
+    const previewEl = document.getElementById('recordPreview');
+    const audioURL = URL.createObjectURL(file);
+    const duration = ((Date.now() - recordStartTime) / 1000).toFixed(1);
+    previewEl.classList.remove('hidden');
+    previewEl.innerHTML = `
+        <div class="flex flex-col items-center gap-3">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                    <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+                <div class="text-left">
+                    <p class="text-sm text-white font-medium">Recording captured</p>
+                    <p class="text-xs text-dark-500">${duration}s · ${(file.size / 1024).toFixed(1)} KB</p>
+                </div>
+                <button onclick="cancelRecording()" class="text-xs text-rose-400 hover:text-rose-300 ml-2">Discard</button>
+            </div>
+            <audio controls src="${audioURL}" class="w-full max-w-md h-8 mt-1" style="filter: invert(1) hue-rotate(180deg) brightness(0.8);"></audio>
+        </div>`;
+}
+
+// ──────── Image Analysis ────────
+async function analyzeImage() {
+    if (!selectedImageFile) { alert('Please select an image first'); return; }
+
+    const btn = document.getElementById('analyzeImageBtn');
+    const resultDiv = document.getElementById('analysisResult');
+    const title = document.getElementById('imageTitle').value.trim() || `Image: ${selectedImageFile.name}`;
+    btn.disabled = true;
+    btn.innerHTML = '<div class="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div> Extracting text with OCR...';
+    resultDiv.className = 'mt-6';
+    resultDiv.innerHTML = '<div class="p-4 rounded-xl bg-violet-500/5 border border-violet-500/20 text-sm text-dark-400 flex items-center gap-3"><div class="animate-spin w-5 h-5 border-2 border-violet-500 border-t-transparent rounded-full flex-shrink-0"></div><div><div class="text-white font-medium mb-0.5">Processing image...</div>Running Tesseract OCR to extract text, then analyzing for misinformation</div></div>';
+
+    try {
+        const formData = new FormData();
+        formData.append('image', selectedImageFile);
+        formData.append('title', title);
+
+        const resp = await fetch('/api/analyze-image/', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await resp.json();
+        if (!data.success) throw new Error(data.error);
+
+        // Show OCR result + analysis
+        const ocrInfo = data.ocr_result || {};
+        const ocrBanner = `<div class="p-4 rounded-xl bg-violet-500/5 border border-violet-500/20 mb-4">
+            <div class="text-xs font-semibold text-violet-400 mb-2 flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                OCR Extracted Text (${ocrInfo.word_count || 0} words · ${(ocrInfo.confidence || 0).toFixed(0)}% confidence)
+            </div>
+            <p class="text-sm text-dark-300 bg-white/5 rounded-lg p-3 max-h-32 overflow-y-auto">${ocrInfo.extracted_text || 'No text extracted'}</p>
+        </div>`;
+
+        resultDiv.className = 'mt-6';
+        resultDiv.innerHTML = ocrBanner;
+        const analysisDiv = document.createElement('div');
+        resultDiv.appendChild(analysisDiv);
+        renderInlineResult(data.results, analysisDiv);
+    } catch(e) {
+        resultDiv.innerHTML = `<div class="p-4 rounded-xl bg-rose-500/5 border border-rose-500/20 text-rose-400 text-sm">${e.message}</div>`;
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg> Extract Text & Analyze Image';
+    }
+}
+
+// ──────── Audio Analysis ────────
+async function analyzeAudio() {
+    if (!selectedAudioFile) { alert('Please select an audio file first'); return; }
+
+    const btn = document.getElementById('analyzeAudioBtn');
+    const resultDiv = document.getElementById('analysisResult');
+    const title = document.getElementById('audioTitle').value.trim() || `Audio: ${selectedAudioFile.name}`;
+    btn.disabled = true;
+    btn.innerHTML = '<div class="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div> Transcribing audio...';
+    resultDiv.className = 'mt-6';
+    resultDiv.innerHTML = '<div class="p-4 rounded-xl bg-cyan-500/5 border border-cyan-500/20 text-sm text-dark-400 flex items-center gap-3"><div class="animate-spin w-5 h-5 border-2 border-cyan-500 border-t-transparent rounded-full flex-shrink-0"></div><div><div class="text-white font-medium mb-0.5">Processing audio...</div>Converting speech to text, then analyzing for misinformation</div></div>';
+
+    try {
+        const formData = new FormData();
+        formData.append('audio', selectedAudioFile);
+        formData.append('title', title);
+
+        const resp = await fetch('/api/analyze-audio/', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await resp.json();
+        if (!data.success) throw new Error(data.error);
+
+        // Show transcription + analysis
+        const txInfo = data.transcription || {};
+        const txBanner = `<div class="p-4 rounded-xl bg-cyan-500/5 border border-cyan-500/20 mb-4">
+            <div class="text-xs font-semibold text-cyan-400 mb-2 flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
+                Audio Transcription (${txInfo.word_count || 0} words · ${(txInfo.duration_seconds || 0).toFixed(1)}s)
+            </div>
+            <p class="text-sm text-dark-300 bg-white/5 rounded-lg p-3 max-h-32 overflow-y-auto">${txInfo.transcribed_text || 'No speech detected'}</p>
+        </div>`;
+
+        resultDiv.className = 'mt-6';
+        resultDiv.innerHTML = txBanner;
+        const analysisDiv = document.createElement('div');
+        resultDiv.appendChild(analysisDiv);
+        renderInlineResult(data.results, analysisDiv);
+    } catch(e) {
+        resultDiv.innerHTML = `<div class="p-4 rounded-xl bg-rose-500/5 border border-rose-500/20 text-rose-400 text-sm">${e.message}</div>`;
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg> Transcribe & Analyze Audio';
+    }
+}
 
 // ──────── Analyze Content ────────
 async function analyzeContent() {

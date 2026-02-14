@@ -9,6 +9,8 @@ urlpatterns = [
     
     # API endpoints
     path('api/analyze/', views.analyze_content_api, name='analyze_content'),
+    path('api/analyze-image/', views.analyze_image_api, name='analyze_image'),
+    path('api/analyze-audio/', views.analyze_audio_api, name='analyze_audio'),
     path('api/fetch-news/', views.fetch_news_api, name='fetch_news'),
     path('api/forecast/', views.forecast_api, name='forecast'),
     path('api/alerts/', views.get_alerts_api, name='get_alerts'),

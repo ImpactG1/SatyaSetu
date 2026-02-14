@@ -19,6 +19,12 @@ nltk>=3.8
 textblob>=0.17.1
 vaderSentiment>=3.3.2
 
+# Image & Audio Processing
+pytesseract>=0.3.10
+Pillow>=10.0.0
+SpeechRecognition>=3.10.0
+pydub>=0.25.1
+
 # API & Data Processing
 newsapi-python>=0.2.7
 beautifulsoup4>=4.12.0

@@ -13,6 +13,8 @@ from .models import Content, Source, MisinformationAnalysis, Alert, TrendAnalysi
 from .services.api_integrations import MultiSourceAggregator, GoogleFactCheckService, NewsAPIService
 from .services.ai_analysis import ExplainableAI
 from .services.web_scraper import WebSearchScraper
+from .services.image_analysis import ImageAnalysisService
+from .services.audio_analysis import AudioAnalysisService
 
 logger = logging.getLogger(__name__)
 
@@ -211,6 +213,322 @@ def analyze_content_api(request):
         
     except Exception as e:
         logger.error(f"Error in content analysis: {e}")
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def analyze_image_api(request):
+    """
+    API endpoint to analyze an image for misinformation.
+    Uses Tesseract OCR to extract text, then runs the existing analysis pipeline.
+    POST /api/analyze-image/  (multipart/form-data)
+    Fields: image (file), title (optional)
+    """
+    try:
+        if 'image' not in request.FILES:
+            return JsonResponse({'error': 'No image file uploaded'}, status=400)
+
+        image_file = request.FILES['image']
+        title = request.POST.get('title', f'Image Analysis: {image_file.name}')
+
+        # Validate file type
+        allowed_exts = ['.png', '.jpg', '.jpeg', '.bmp', '.tiff', '.tif', '.gif', '.webp']
+        import os
+        ext = os.path.splitext(image_file.name)[1].lower()
+        if ext not in allowed_exts:
+            return JsonResponse({
+                'error': f'Unsupported image format: {ext}. Supported: {", ".join(allowed_exts)}'
+            }, status=400)
+
+        # Extract text using OCR
+        ocr_service = ImageAnalysisService()
+        ocr_result = ocr_service.extract_text_from_upload(image_file)
+
+        if not ocr_result['success']:
+            return JsonResponse({
+                'error': f'OCR extraction failed: {ocr_result.get("error", "Unknown error")}'
+            }, status=400)
+
+        extracted_text = ocr_result['extracted_text']
+        if not extracted_text or len(extracted_text.strip()) < 5:
+            return JsonResponse({
+                'error': 'No readable text found in the image. Please upload an image with visible text content.',
+                'ocr_result': ocr_result
+            }, status=400)
+
+        # Get or create source
+        source, _ = Source.objects.get_or_create(
+            name='Image Upload',
+            defaults={'source_type': 'web'}
+        )
+
+        # Create content record
+        content = Content.objects.create(
+            title=title,
+            text=extracted_text,
+            content_type='image',
+            source=source,
+            extracted_text=extracted_text,
+            extraction_confidence=ocr_result.get('confidence', 0),
+            extraction_metadata={
+                'ocr_confidence': ocr_result.get('confidence', 0),
+                'word_count': ocr_result.get('word_count', 0),
+                'image_size': ocr_result.get('image_size', {}),
+                'filename': ocr_result.get('filename', ''),
+            },
+            published_date=timezone.now()
+        )
+
+        # Save the uploaded file
+        content.media_file = image_file
+        content.save()
+
+        # Run the existing analysis pipeline
+        fact_check_service = GoogleFactCheckService()
+        fact_checks = fact_check_service.search_claims(title)
+
+        ai_engine = ExplainableAI()
+        analysis_results = ai_engine.analyze_content(
+            title=title,
+            text=extracted_text,
+            url='',
+            source_credibility=source.credibility_score,
+            fact_check_results=fact_checks
+        )
+
+        # Save analysis
+        analysis = MisinformationAnalysis.objects.create(
+            content=content,
+            misinformation_likelihood=analysis_results['misinformation_likelihood'],
+            credibility_score=analysis_results['credibility_score'],
+            bias_score=analysis_results['bias_score'],
+            amplification_risk=analysis_results['amplification_risk'],
+            estimated_reach=analysis_results['estimated_reach'],
+            velocity_score=analysis_results['velocity_score'],
+            societal_impact_score=analysis_results['societal_impact_score'],
+            risk_level=analysis_results['risk_level'],
+            affected_topics=analysis_results['affected_topics'],
+            sentiment_score=analysis_results['sentiment_score'],
+            emotional_triggers=analysis_results['emotional_triggers'],
+            explanation=analysis_results['explanation'],
+            confidence_score=analysis_results['confidence_score'],
+            key_indicators=analysis_results['key_indicators'],
+            fact_check_results=fact_checks
+        )
+
+        content.is_analyzed = True
+        content.save()
+
+        # Create alert if high risk
+        if analysis.risk_level in ['high', 'critical']:
+            Alert.objects.create(
+                analysis=analysis,
+                severity='critical' if analysis.risk_level == 'critical' else 'warning',
+                title=f"High-risk image content: {title[:100]}",
+                message=analysis.explanation,
+                impact_areas=analysis.affected_topics
+            )
+
+        AnalysisLog.objects.create(
+            log_type='analysis',
+            message=f"Image analyzed: {title[:100]}",
+            details={
+                'content_id': content.id,
+                'risk_level': analysis.risk_level,
+                'ocr_confidence': ocr_result.get('confidence', 0),
+                'content_type': 'image',
+            },
+            success=True
+        )
+
+        return JsonResponse({
+            'success': True,
+            'content_id': content.id,
+            'analysis_id': analysis.id,
+            'ocr_result': {
+                'extracted_text': extracted_text,
+                'confidence': ocr_result.get('confidence', 0),
+                'word_count': ocr_result.get('word_count', 0),
+            },
+            'results': {
+                'misinformation_likelihood': analysis.misinformation_likelihood,
+                'credibility_score': analysis.credibility_score,
+                'risk_level': analysis.risk_level,
+                'societal_impact_score': analysis.societal_impact_score,
+                'amplification_risk': analysis.amplification_risk,
+                'estimated_reach': analysis.estimated_reach,
+                'velocity_score': analysis.velocity_score,
+                'explanation': analysis.explanation,
+                'confidence': analysis.confidence_score,
+                'fact_checks': fact_checks,
+                'source_attribution': analysis_results.get('source_attribution', ''),
+                'signal_scores': analysis_results.get('signal_scores', {}),
+                'key_indicators': analysis_results.get('key_indicators', []),
+                'affected_topics': analysis_results.get('affected_topics', []),
+                'sentiment_score': analysis_results.get('sentiment_score', 0),
+                'emotional_triggers': analysis_results.get('emotional_triggers', []),
+                'bias_score': analysis_results.get('bias_score', 0),
+                'web_sources': analysis_results.get('web_sources', {}),
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"Error in image analysis: {e}")
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def analyze_audio_api(request):
+    """
+    API endpoint to analyze audio for misinformation.
+    Uses SpeechRecognition to convert audio to text, then runs the existing analysis pipeline.
+    POST /api/analyze-audio/  (multipart/form-data)
+    Fields: audio (file), title (optional)
+    """
+    try:
+        if 'audio' not in request.FILES:
+            return JsonResponse({'error': 'No audio file uploaded'}, status=400)
+
+        audio_file = request.FILES['audio']
+        title = request.POST.get('title', f'Audio Analysis: {audio_file.name}')
+
+        # Transcribe audio to text
+        audio_service = AudioAnalysisService()
+        transcription = audio_service.transcribe_upload(audio_file)
+
+        if not transcription['success']:
+            return JsonResponse({
+                'error': f'Audio transcription failed: {transcription.get("error", "Unknown error")}'
+            }, status=400)
+
+        transcribed_text = transcription['transcribed_text']
+        if not transcribed_text or len(transcribed_text.strip()) < 5:
+            return JsonResponse({
+                'error': 'No speech detected in the audio. Please upload an audio file with clear speech.',
+                'transcription_result': transcription
+            }, status=400)
+
+        # Get or create source
+        source, _ = Source.objects.get_or_create(
+            name='Audio Upload',
+            defaults={'source_type': 'web'}
+        )
+
+        # Create content record
+        content = Content.objects.create(
+            title=title,
+            text=transcribed_text,
+            content_type='audio',
+            source=source,
+            extracted_text=transcribed_text,
+            extraction_confidence=0,
+            extraction_metadata={
+                'duration_seconds': transcription.get('duration_seconds', 0),
+                'word_count': transcription.get('word_count', 0),
+                'method': transcription.get('method', ''),
+                'filename': transcription.get('filename', ''),
+                'chunks_processed': transcription.get('chunks_processed', 0),
+            },
+            published_date=timezone.now()
+        )
+
+        # Save the uploaded file
+        content.media_file = audio_file
+        content.save()
+
+        # Run the existing analysis pipeline
+        fact_check_service = GoogleFactCheckService()
+        fact_checks = fact_check_service.search_claims(title)
+
+        ai_engine = ExplainableAI()
+        analysis_results = ai_engine.analyze_content(
+            title=title,
+            text=transcribed_text,
+            url='',
+            source_credibility=source.credibility_score,
+            fact_check_results=fact_checks
+        )
+
+        # Save analysis
+        analysis = MisinformationAnalysis.objects.create(
+            content=content,
+            misinformation_likelihood=analysis_results['misinformation_likelihood'],
+            credibility_score=analysis_results['credibility_score'],
+            bias_score=analysis_results['bias_score'],
+            amplification_risk=analysis_results['amplification_risk'],
+            estimated_reach=analysis_results['estimated_reach'],
+            velocity_score=analysis_results['velocity_score'],
+            societal_impact_score=analysis_results['societal_impact_score'],
+            risk_level=analysis_results['risk_level'],
+            affected_topics=analysis_results['affected_topics'],
+            sentiment_score=analysis_results['sentiment_score'],
+            emotional_triggers=analysis_results['emotional_triggers'],
+            explanation=analysis_results['explanation'],
+            confidence_score=analysis_results['confidence_score'],
+            key_indicators=analysis_results['key_indicators'],
+            fact_check_results=fact_checks
+        )
+
+        content.is_analyzed = True
+        content.save()
+
+        # Create alert if high risk
+        if analysis.risk_level in ['high', 'critical']:
+            Alert.objects.create(
+                analysis=analysis,
+                severity='critical' if analysis.risk_level == 'critical' else 'warning',
+                title=f"High-risk audio content: {title[:100]}",
+                message=analysis.explanation,
+                impact_areas=analysis.affected_topics
+            )
+
+        AnalysisLog.objects.create(
+            log_type='analysis',
+            message=f"Audio analyzed: {title[:100]}",
+            details={
+                'content_id': content.id,
+                'risk_level': analysis.risk_level,
+                'duration': transcription.get('duration_seconds', 0),
+                'content_type': 'audio',
+            },
+            success=True
+        )
+
+        return JsonResponse({
+            'success': True,
+            'content_id': content.id,
+            'analysis_id': analysis.id,
+            'transcription': {
+                'transcribed_text': transcribed_text,
+                'duration_seconds': transcription.get('duration_seconds', 0),
+                'word_count': transcription.get('word_count', 0),
+            },
+            'results': {
+                'misinformation_likelihood': analysis.misinformation_likelihood,
+                'credibility_score': analysis.credibility_score,
+                'risk_level': analysis.risk_level,
+                'societal_impact_score': analysis.societal_impact_score,
+                'amplification_risk': analysis.amplification_risk,
+                'estimated_reach': analysis.estimated_reach,
+                'velocity_score': analysis.velocity_score,
+                'explanation': analysis.explanation,
+                'confidence': analysis.confidence_score,
+                'fact_checks': fact_checks,
+                'source_attribution': analysis_results.get('source_attribution', ''),
+                'signal_scores': analysis_results.get('signal_scores', {}),
+                'key_indicators': analysis_results.get('key_indicators', []),
+                'affected_topics': analysis_results.get('affected_topics', []),
+                'sentiment_score': analysis_results.get('sentiment_score', 0),
+                'emotional_triggers': analysis_results.get('emotional_triggers', []),
+                'bias_score': analysis_results.get('bias_score', 0),
+                'web_sources': analysis_results.get('web_sources', {}),
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"Error in audio analysis: {e}")
         return JsonResponse({'error': str(e)}, status=500)
 
 
