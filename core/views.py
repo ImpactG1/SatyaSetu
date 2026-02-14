@@ -12,6 +12,7 @@ import logging
 from .models import Content, Source, MisinformationAnalysis, Alert, TrendAnalysis, AnalysisLog
 from .services.api_integrations import MultiSourceAggregator, GoogleFactCheckService, NewsAPIService
 from .services.ai_analysis import ExplainableAI
+from .services.web_scraper import WebSearchScraper
 
 logger = logging.getLogger(__name__)
 
@@ -202,6 +203,7 @@ def analyze_content_api(request):
                 'sentiment_score': analysis_results.get('sentiment_score', 0),
                 'emotional_triggers': analysis_results.get('emotional_triggers', []),
                 'bias_score': analysis_results.get('bias_score', 0),
+                'web_sources': analysis_results.get('web_sources', {}),
             }
         })
         
@@ -214,19 +216,19 @@ def analyze_content_api(request):
 @require_http_methods(["POST"])
 def fetch_news_api(request):
     """
-    Fetch and analyze news from NewsAPI
+    News Intelligence Feed — Fetch, analyze, and return enriched news articles
+    with source attribution and web-scraped verification.
     POST /api/fetch-news/
     Body: {
         "query": "search term",
         "category": "technology",
-        "auto_analyze": true
     }
+    Returns each article with full analysis + scraped source names.
     """
     try:
         data = json.loads(request.body)
         query = data.get('query', '')
         category = data.get('category')
-        auto_analyze = data.get('auto_analyze', False)
         
         news_service = NewsAPIService()
         
@@ -240,12 +242,12 @@ def fetch_news_api(request):
         if not articles:
             return JsonResponse({'error': 'No articles found'}, status=404)
         
-        # Store articles
+        # Process articles: store, analyze, and collect results
+        feed_results = []
         stored_count = 0
         analyzed_count = 0
         
-        for article in articles[:10]:  # Limit to 10 articles
-            # Skip articles with missing essential data
+        for article in articles[:5]:  # Limit to 5 for speed
             article_title = article.get('title') or ''
             article_text = article.get('content') or article.get('description') or ''
             article_url = article.get('url') or ''
@@ -273,52 +275,125 @@ def fetch_news_api(request):
             
             if created:
                 stored_count += 1
+            
+            # Check if already analyzed
+            existing_analysis = MisinformationAnalysis.objects.filter(content=content).first()
+            
+            if existing_analysis:
+                # Return existing analysis
+                feed_results.append({
+                    'title': content.title,
+                    'source_name': article['source'],
+                    'url': article_url,
+                    'image_url': article.get('image_url', ''),
+                    'published_at': article.get('published_at', ''),
+                    'author': article.get('author', 'Unknown'),
+                    'misinformation_likelihood': existing_analysis.misinformation_likelihood,
+                    'risk_level': existing_analysis.risk_level,
+                    'credibility_score': existing_analysis.credibility_score,
+                    'explanation': existing_analysis.explanation[:300],
+                    'affected_topics': existing_analysis.affected_topics or [],
+                    'web_sources': {},
+                    'analysis_id': existing_analysis.id,
+                })
+                continue
+            
+            # Run analysis — skip heavy web scraping for bulk news feed
+            try:
+                fc_service = GoogleFactCheckService()
+                fc_results = fc_service.search_claims(content.title)
                 
-                # Auto-analyze if requested
-                if auto_analyze:
-                    try:
-                        # Fetch fact-checks for cross-referencing
-                        fc_service = GoogleFactCheckService()
-                        fc_results = fc_service.search_claims(content.title)
-                        
-                        ai_engine = ExplainableAI()
-                        analysis_results = ai_engine.analyze_content(
-                            title=content.title,
-                            text=content.text,
-                            url=content.url,
-                            source_credibility=source.credibility_score,
-                            fact_check_results=fc_results
-                        )
-                        
-                        MisinformationAnalysis.objects.create(
-                            content=content,
-                            misinformation_likelihood=analysis_results['misinformation_likelihood'],
-                            credibility_score=analysis_results['credibility_score'],
-                            bias_score=analysis_results['bias_score'],
-                            amplification_risk=analysis_results['amplification_risk'],
-                            estimated_reach=analysis_results['estimated_reach'],
-                            velocity_score=analysis_results['velocity_score'],
-                            societal_impact_score=analysis_results['societal_impact_score'],
-                            risk_level=analysis_results['risk_level'],
-                            affected_topics=analysis_results['affected_topics'],
-                            sentiment_score=analysis_results['sentiment_score'],
-                            emotional_triggers=analysis_results['emotional_triggers'],
-                            explanation=analysis_results['explanation'],
-                            confidence_score=analysis_results['confidence_score'],
-                            key_indicators=analysis_results['key_indicators']
-                        )
-                        
-                        content.is_analyzed = True
-                        content.save()
-                        analyzed_count += 1
-                    except Exception as e:
-                        logger.error(f"Error analyzing article: {e}")
+                # Lightweight web scrape: reduced timeout & results for feed speed
+                fast_scraper = WebSearchScraper(timeout=4, max_results=3)
+                try:
+                    web_sources = fast_scraper.search_and_scrape(content.title, include_fact_check=False)
+                except Exception:
+                    web_sources = {'sources_scraped': [], 'total_sources': 0,
+                                   'source_names': [], 'consensus': 'insufficient',
+                                   'summary': 'Web scraping unavailable.'}
+                
+                ai_engine = ExplainableAI()
+                analysis_results = ai_engine.analyze_content(
+                    title=content.title,
+                    text=content.text,
+                    url=content.url,
+                    source_credibility=source.credibility_score,
+                    fact_check_results=fc_results,
+                    web_sources=web_sources
+                )
+                
+                analysis = MisinformationAnalysis.objects.create(
+                    content=content,
+                    misinformation_likelihood=analysis_results['misinformation_likelihood'],
+                    credibility_score=analysis_results['credibility_score'],
+                    bias_score=analysis_results['bias_score'],
+                    amplification_risk=analysis_results['amplification_risk'],
+                    estimated_reach=analysis_results['estimated_reach'],
+                    velocity_score=analysis_results['velocity_score'],
+                    societal_impact_score=analysis_results['societal_impact_score'],
+                    risk_level=analysis_results['risk_level'],
+                    affected_topics=analysis_results['affected_topics'],
+                    sentiment_score=analysis_results['sentiment_score'],
+                    emotional_triggers=analysis_results['emotional_triggers'],
+                    explanation=analysis_results['explanation'],
+                    confidence_score=analysis_results['confidence_score'],
+                    key_indicators=analysis_results['key_indicators'],
+                    fact_check_results=fc_results
+                )
+                
+                content.is_analyzed = True
+                content.save()
+                analyzed_count += 1
+                
+                # Create alert if high risk
+                if analysis.risk_level in ['high', 'critical']:
+                    Alert.objects.create(
+                        analysis=analysis,
+                        severity='critical' if analysis.risk_level == 'critical' else 'warning',
+                        title=f"High-risk content detected: {content.title[:100]}",
+                        message=analysis.explanation,
+                        impact_areas=analysis.affected_topics
+                    )
+                
+                web_src = analysis_results.get('web_sources', {})
+                
+                feed_results.append({
+                    'title': content.title,
+                    'source_name': article['source'],
+                    'url': article_url,
+                    'image_url': article.get('image_url', ''),
+                    'published_at': article.get('published_at', ''),
+                    'author': article.get('author', 'Unknown'),
+                    'misinformation_likelihood': analysis.misinformation_likelihood,
+                    'risk_level': analysis.risk_level,
+                    'credibility_score': analysis.credibility_score,
+                    'explanation': analysis.explanation[:300],
+                    'affected_topics': analysis_results.get('affected_topics', []),
+                    'source_attribution': analysis_results.get('source_attribution', ''),
+                    'web_sources': {
+                        'total': web_src.get('total', 0),
+                        'source_names': web_src.get('source_names', []),
+                        'consensus': web_src.get('consensus', 'insufficient'),
+                        'fact_checker_count': web_src.get('fact_checker_count', 0),
+                    },
+                    'analysis_id': analysis.id,
+                })
+            except Exception as e:
+                logger.error(f"Error analyzing article '{article_title[:50]}': {e}")
+                feed_results.append({
+                    'title': article_title,
+                    'source_name': article['source'],
+                    'url': article_url,
+                    'image_url': article.get('image_url', ''),
+                    'published_at': article.get('published_at', ''),
+                    'error': True,
+                })
         
         # Log the fetch
         AnalysisLog.objects.create(
             log_type='fetch',
-            message=f"Fetched {len(articles)} articles from NewsAPI",
-            details={'stored': stored_count, 'analyzed': analyzed_count},
+            message=f"News feed: {len(articles)} found, {analyzed_count} analyzed",
+            details={'stored': stored_count, 'analyzed': analyzed_count, 'query': query},
             success=True
         )
         
@@ -326,7 +401,8 @@ def fetch_news_api(request):
             'success': True,
             'articles_found': len(articles),
             'articles_stored': stored_count,
-            'articles_analyzed': analyzed_count
+            'articles_analyzed': analyzed_count,
+            'feed': feed_results,
         })
         
     except Exception as e:

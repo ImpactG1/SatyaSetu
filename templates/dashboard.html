@@ -110,12 +110,14 @@
             <div class="flex items-center justify-between mb-5">
                 <div>
                     <h2 class="text-lg font-bold text-white">Analyze Content</h2>
-                    <p class="text-xs text-dark-500 mt-0.5">Paste any article or claim to check for misinformation</p>
+                    <p class="text-xs text-dark-500 mt-0.5">Paste any article or claim — AI will scrape the web for real source verification</p>
                 </div>
-                <button onclick="fetchNewsArticles(this)" class="px-4 py-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-dark-300 hover:text-white text-sm font-medium transition-all flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                    Fetch Latest News
-                </button>
+                <div class="flex items-center gap-2">
+                    <span class="px-2.5 py-1 rounded-lg bg-indigo-500/10 text-indigo-400 text-xs font-medium flex items-center gap-1.5">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/></svg>
+                        Web Scraping Active
+                    </span>
+                </div>
             </div>
             <div class="grid md:grid-cols-2 gap-4">
                 <div>
@@ -139,6 +141,49 @@
             </div>
             <!-- Inline Analysis Result (shows after analysis) -->
             <div id="analysisResult" class="hidden"></div>
+        </div>
+
+        <!-- ═══════════ SECTION 2.5: News Intelligence Feed ═══════════ -->
+        <div class="glass rounded-2xl p-6 mb-8">
+            <div class="flex items-center justify-between mb-5">
+                <div>
+                    <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                        <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/></svg>
+                        News Intelligence Feed
+                    </h2>
+                    <p class="text-xs text-dark-500 mt-0.5">Fetch live news, auto-analyze with AI, and see which sources were scraped</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <select id="newsCategory" class="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-dark-300 text-sm focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500">
+                        <option value="">Top Headlines</option>
+                        <option value="technology">Technology</option>
+                        <option value="business">Business</option>
+                        <option value="health">Health</option>
+                        <option value="science">Science</option>
+                        <option value="sports">Sports</option>
+                        <option value="entertainment">Entertainment</option>
+                    </select>
+                    <div class="flex items-center gap-2">
+                        <input type="text" id="newsQuery" placeholder="Search news..." class="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm placeholder-dark-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 w-40">
+                        <button id="fetchNewsBtn" onclick="fetchNewsFeed(this)" class="px-4 py-2 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-sm font-medium transition-all flex items-center gap-2 shadow-lg shadow-cyan-500/20">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                            Fetch &amp; Analyze
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- News Feed Status -->
+            <div id="newsFeedStatus" class="hidden mb-4"></div>
+
+            <!-- News Feed Results -->
+            <div id="newsFeedResults" class="space-y-3">
+                <div class="text-center py-12 text-dark-500">
+                    <svg class="w-12 h-12 mx-auto mb-3 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/></svg>
+                    <p class="text-sm">Click "Fetch & Analyze" to load latest news with AI analysis</p>
+                    <p class="text-xs text-dark-600 mt-1">Each article is analyzed and verified against real web sources</p>
+                </div>
+            </div>
         </div>
 
         <!-- ═══════════ SECTION 3: Intelligence Grid ═══════════ -->
@@ -379,9 +424,9 @@ async function analyzeContent() {
     const btn = document.getElementById('analyzeBtn');
     const resultDiv = document.getElementById('analysisResult');
     btn.disabled = true;
-    btn.innerHTML = '<div class="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div> Analyzing with AI...';
+    btn.innerHTML = '<div class="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div> Scraping web sources & analyzing...';
     resultDiv.className = 'mt-6';
-    resultDiv.innerHTML = '';
+    resultDiv.innerHTML = '<div class="p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/20 text-sm text-dark-400 flex items-center gap-3"><div class="animate-spin w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full flex-shrink-0"></div><div><div class="text-white font-medium mb-0.5">Searching the web...</div>Scraping news sources, cross-referencing fact-checkers, running AI analysis</div></div>';
 
     try {
         const resp = await fetch('/api/analyze/', {
@@ -414,10 +459,45 @@ function renderInlineResult(r, el) {
     const topics = (r.affected_topics || []).join(', ') || 'General';
     const fcs = r.fact_checks || [];
     const indicators = r.key_indicators || [];
+    const ws = r.web_sources || {};
+
+    // Build web sources section
+    let webSourcesHTML = '';
+    if (ws.total > 0) {
+        const sourceNames = ws.source_names || [];
+        const sourceDetails = ws.sources_detail || [];
+        const consensus = ws.consensus || 'insufficient';
+        const consensusLabel = consensus === 'mostly_denied' ? '🔴 Mostly Denied' :
+            consensus === 'mostly_supported' ? '🟢 Mostly Supported' :
+            consensus === 'conflicting' ? '🟡 Conflicting' : '⚪ Insufficient Data';
+
+        webSourcesHTML = `
+        <div class="p-4 rounded-lg bg-cyan-500/5 border border-cyan-500/10 mb-4">
+            <div class="text-xs font-semibold text-cyan-400 mb-3 flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/></svg>
+                Web Sources Scraped (${ws.total} sources) — ${consensusLabel}
+            </div>
+            <div class="flex flex-wrap gap-1.5 mb-3">
+                ${sourceNames.map(n => '<span class="indicator-pill bg-white/10 text-white text-xs">' + n + '</span>').join('')}
+            </div>
+            ${sourceDetails.length > 0 ? `
+            <div class="space-y-2">
+                ${sourceDetails.slice(0, 4).map(s => {
+                    const tc = s.type === 'fact_checker' ? 'violet' : s.type === 'mainstream' ? 'cyan' : 'dark';
+                    return '<div class="flex items-start gap-2 p-2 rounded-lg bg-white/5">' +
+                        '<span class="indicator-pill bg-' + tc + '-500/10 text-' + tc + '-400 flex-shrink-0 text-xs">' + (s.type === 'fact_checker' ? '✓ Fact-Checker' : s.type === 'mainstream' ? '📰 News' : '🌐 Web') + '</span>' +
+                        '<div class="min-w-0">' +
+                            '<div class="text-xs font-medium text-white">' + s.name + ' <span class="text-dark-600">— ' + s.credibility + '/10 credibility</span></div>' +
+                            '<div class="text-xs text-dark-400 truncate">' + s.title + '</div>' +
+                        '</div>' +
+                    '</div>';
+                }).join('')}
+            </div>` : ''}
+        </div>`;
+    }
 
     el.innerHTML = `
     <div class="p-5 rounded-xl border border-${rc}-500/20 bg-${rc}-500/5">
-        <!-- Verdict Header -->
         <div class="flex items-center justify-between mb-5">
             <div class="flex items-center gap-3">
                 <div class="w-14 h-14 rounded-xl bg-${rc}-500/10 flex items-center justify-center">
@@ -425,13 +505,11 @@ function renderInlineResult(r, el) {
                 </div>
                 <div>
                     <div class="text-sm font-bold text-white">Misinformation Likelihood</div>
-                    <div class="text-xs text-dark-400">Confidence: ${conf}%</div>
+                    <div class="text-xs text-dark-400">Confidence: ${conf}% · ${ws.total || 0} web sources checked</div>
                 </div>
             </div>
             <span class="px-3 py-1.5 rounded-lg bg-${rc}-500/20 text-${rc}-400 text-sm font-bold">${risk.toUpperCase()}</span>
         </div>
-
-        <!-- Score Grid -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
             <div class="p-3 rounded-lg bg-white/5 text-center">
                 <div class="text-lg font-bold text-white">${(ml * 100).toFixed(0)}%</div>
@@ -450,24 +528,19 @@ function renderInlineResult(r, el) {
                 <div class="text-xs text-dark-500">Est. Reach</div>
             </div>
         </div>
-
-        <!-- Topics -->
         <div class="mb-4">
             <div class="text-xs text-dark-500 mb-1.5">Sensitive Topics</div>
-            <div class="flex flex-wrap gap-1.5">${topics.split(', ').map(t => `<span class="indicator-pill bg-white/5 text-dark-300">${t}</span>`).join('')}</div>
+            <div class="flex flex-wrap gap-1.5">${topics.split(', ').map(t => '<span class="indicator-pill bg-white/5 text-dark-300">' + t + '</span>').join('')}</div>
         </div>
-
-        <!-- AI Explanation -->
+        ${webSourcesHTML}
         <div class="p-4 rounded-lg bg-white/5 mb-4">
             <div class="text-xs font-semibold text-indigo-400 mb-2 flex items-center gap-1.5">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
                 AI Reasoning ${srcAttr ? '— with Source Attribution' : ''}
             </div>
             <p class="text-sm text-dark-300 leading-relaxed">${expl}</p>
-            ${srcAttr ? `<p class="text-sm text-dark-300 mt-3 pt-3 border-t border-white/5 italic">${srcAttr}</p>` : ''}
+            ${srcAttr ? '<p class="text-sm text-dark-300 mt-3 pt-3 border-t border-white/5 italic">' + srcAttr + '</p>' : ''}
         </div>
-
-        <!-- Key Indicators -->
         ${indicators.length > 0 ? `
         <div class="mb-4">
             <div class="text-xs font-semibold text-dark-400 mb-2">Key Indicators</div>
@@ -475,15 +548,10 @@ function renderInlineResult(r, el) {
                 ${indicators.slice(0, 5).map(i => {
                     const s = i.score || 0;
                     const c = s > 0.6 ? 'rose' : s > 0.3 ? 'amber' : 'emerald';
-                    return `<div class="flex items-start gap-2 text-xs">
-                        <span class="indicator-pill bg-${c}-500/10 text-${c}-400 flex-shrink-0">${(s*100).toFixed(0)}%</span>
-                        <span class="text-dark-300">${i.description || i.type}</span>
-                    </div>`;
+                    return '<div class="flex items-start gap-2 text-xs"><span class="indicator-pill bg-' + c + '-500/10 text-' + c + '-400 flex-shrink-0">' + (s*100).toFixed(0) + '%</span><span class="text-dark-300">' + (i.description || i.type) + '</span></div>';
                 }).join('')}
             </div>
         </div>` : ''}
-
-        <!-- Fact Checks -->
         ${fcs.length > 0 ? `
         <div>
             <div class="text-xs font-semibold text-dark-400 mb-2">Fact-Check Results</div>
@@ -491,13 +559,7 @@ function renderInlineResult(r, el) {
                 ${fcs.slice(0, 3).map(fc => {
                     const rating = (fc.rating || '').toLowerCase();
                     const c = rating.includes('false') ? 'rose' : rating.includes('true') ? 'emerald' : 'amber';
-                    return `<div class="p-3 rounded-lg bg-white/5 flex items-start justify-between gap-3">
-                        <div class="min-w-0">
-                            <div class="text-xs text-dark-500">${fc.publisher || 'Unknown'}</div>
-                            <div class="text-sm text-white truncate">${fc.claim_text || ''}</div>
-                        </div>
-                        <span class="indicator-pill bg-${c}-500/10 text-${c}-400 flex-shrink-0">${fc.rating || 'Unrated'}</span>
-                    </div>`;
+                    return '<div class="p-3 rounded-lg bg-white/5 flex items-start justify-between gap-3"><div class="min-w-0"><div class="text-xs text-dark-500">' + (fc.publisher || 'Unknown') + '</div><div class="text-sm text-white truncate">' + (fc.claim_text || '') + '</div></div><span class="indicator-pill bg-' + c + '-500/10 text-' + c + '-400 flex-shrink-0">' + (fc.rating || 'Unrated') + '</span></div>';
                 }).join('')}
             </div>
         </div>` : ''}
@@ -698,26 +760,96 @@ function renderDetailModal(a, alertInfo = null) {
     document.getElementById('modalBody').innerHTML = body;
 }
 
-// ──────── Fetch News ────────
-async function fetchNewsArticles(btn) {
+// ──────── News Intelligence Feed ────────
+async function fetchNewsFeed(btn) {
     const originalHTML = btn.innerHTML;
     btn.disabled = true;
-    btn.innerHTML = '<div class="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div> Fetching...';
+    btn.innerHTML = '<div class="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div> Fetching & Analyzing...';
+
+    const statusEl = document.getElementById('newsFeedStatus');
+    const resultsEl = document.getElementById('newsFeedResults');
+    const category = document.getElementById('newsCategory').value;
+    const search = document.getElementById('newsQuery').value.trim();
+
+    statusEl.classList.remove('hidden');
+    statusEl.innerHTML = '<div class="flex items-center gap-2 text-sm text-indigo-400"><div class="animate-spin w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full"></div>Fetching news articles, scraping web sources & running AI analysis... This may take a minute.</div>';
+    resultsEl.innerHTML = '';
+
     try {
+        const body = { auto_analyze: true };
+        if (category !== 'general') body.category = category;
+        if (search) body.query = search;
+
         const resp = await fetch('/api/fetch-news/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ auto_analyze: true })
+            body: JSON.stringify(body)
         });
         const data = await resp.json();
-        if (data.success) {
-            alert(`Fetched ${data.articles_found} articles. ${data.articles_analyzed} analyzed.`);
-            location.reload();
-        } else {
-            alert('Error: ' + data.error);
+        if (!data.success) throw new Error(data.error || 'Failed to fetch news');
+
+        const feed = data.feed || [];
+        const analyzed = data.articles_analyzed || 0;
+        const found = data.articles_found || 0;
+
+        statusEl.innerHTML = '<div class="text-xs text-dark-400">' + found + ' articles found · ' + analyzed + ' analyzed with web verification</div>';
+
+        if (feed.length === 0) {
+            resultsEl.innerHTML = '<div class="text-center py-8 text-dark-500 text-sm">No articles found. Try a different category or search term.</div>';
+            return;
         }
-    } catch(e) { alert('Error: ' + e.message); }
-    finally { btn.disabled = false; btn.innerHTML = originalHTML; }
+
+        resultsEl.innerHTML = feed.map(article => renderNewsFeedCard(article)).join('');
+
+    } catch(e) {
+        statusEl.innerHTML = '<div class="text-rose-400 text-sm">Error: ' + e.message + '</div>';
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+    }
+}
+
+function renderNewsFeedCard(a) {
+    const ml = a.misinformation_likelihood || 0;
+    const pct = (ml * 100).toFixed(0);
+    const risk = a.risk_level || 'low';
+    const rc = risk === 'critical' ? 'rose' : risk === 'high' ? 'amber' : risk === 'medium' ? 'blue' : 'emerald';
+    const ws = a.web_sources || {};
+    const sourceNames = ws.source_names || [];
+    const consensus = ws.consensus || 'insufficient';
+    const consensusLabel = consensus === 'mostly_denied' ? '🔴 Denied' :
+        consensus === 'mostly_supported' ? '🟢 Supported' :
+        consensus === 'conflicting' ? '🟡 Conflicting' : '⚪ Pending';
+    const expl = a.explanation || '';
+    const srcAttr = a.source_attribution || '';
+    const topics = a.affected_topics || [];
+    const credScore = a.credibility_score ? (a.credibility_score * 100).toFixed(0) + '%' : 'N/A';
+    const analysisId = a.analysis_id || '';
+    const clickAttr = analysisId ? ' onclick="openAnalysisDetail(' + analysisId + ')" style="cursor:pointer;"' : '';
+
+    return '<div class="glass-card p-4 rounded-xl border border-white/5 hover:border-' + rc + '-500/30 transition-all duration-300"' + clickAttr + '>' +
+        '<div class="flex items-start gap-4">' +
+            (a.image_url ? '<img src="' + a.image_url + '" class="w-20 h-20 rounded-lg object-cover flex-shrink-0" onerror="this.style.display=\'none\'">' : '') +
+            '<div class="flex-1 min-w-0">' +
+                '<div class="flex items-center justify-between gap-2 mb-1">' +
+                    '<div class="text-xs text-dark-500">' + (a.source_name || 'Unknown Source') + '</div>' +
+                    '<div class="flex items-center gap-2">' +
+                        '<span class="px-2 py-0.5 rounded-md bg-' + rc + '-500/20 text-' + rc + '-400 text-xs font-bold">' + pct + '% ' + risk.toUpperCase() + '</span>' +
+                    '</div>' +
+                '</div>' +
+                '<h3 class="text-sm font-semibold text-white mb-2 line-clamp-2">' + (a.title || 'Untitled') + '</h3>' +
+                (expl ? '<p class="text-xs text-dark-400 mb-2 line-clamp-2">' + expl + '</p>' : '') +
+                (topics.length > 0 ? '<div class="flex flex-wrap gap-1 mb-2">' + topics.slice(0, 3).map(function(t) { return '<span class="indicator-pill bg-white/5 text-dark-400 text-xs">' + t + '</span>'; }).join('') + '</div>' : '') +
+                '<div class="flex flex-wrap items-center gap-2 mb-2">' +
+                    '<span class="text-xs text-dark-500">Credibility: ' + credScore + '</span>' +
+                    '<span class="text-xs px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400">' + consensusLabel + '</span>' +
+                    (ws.fact_checker_count > 0 ? '<span class="text-xs text-violet-400">' + ws.fact_checker_count + ' fact-checker(s)</span>' : '') +
+                '</div>' +
+                (sourceNames.length > 0 ? '<div class="flex flex-wrap items-center gap-1"><span class="text-xs text-dark-600">Scraped from:</span>' + sourceNames.slice(0, 5).map(function(n) { return '<span class="text-xs px-1.5 py-0.5 rounded bg-cyan-500/5 text-cyan-400/80">' + n + '</span>'; }).join('') + '</div>' : '') +
+                (srcAttr ? '<p class="text-xs text-dark-500 mt-2 italic line-clamp-1">' + srcAttr + '</p>' : '') +
+            '</div>' +
+        '</div>' +
+    '</div>';
 }
 
 // ──────── Auto-refresh alerts ────────

@@ -32,6 +32,7 @@ except ImportError:
 import numpy as np
 
 from .groq_service import GroqReasoningService
+from .web_scraper import WebSearchScraper
 
 logger = logging.getLogger(__name__)
 
@@ -622,15 +623,29 @@ class ExplainableAI:
         self.fact_checker = FactCheckCrossReferencer()
         self.topic_classifier = TopicSensitivityClassifier()
         self.groq = GroqReasoningService()
+        self.web_scraper = WebSearchScraper()
 
     def analyze_content(self, title: str, text: str, url: str = '',
                         source_credibility: float = 5.0,
                         topics: List[str] = None,
-                        fact_check_results: List[Dict] = None) -> Dict:
+                        fact_check_results: List[Dict] = None,
+                        web_sources: Dict = None) -> Dict:
         """
         Complete explainable AI analysis with multi-signal fusion.
+        Now includes web scraping for real-time source verification.
         """
         full_text = f"{title} {text}"
+
+        # ---- Web scraping for real source verification ----
+        if web_sources is None:
+            try:
+                web_sources = self.web_scraper.search_and_scrape(title)
+                logger.info(f"Web scraper found {web_sources.get('total_sources', 0)} sources")
+            except Exception as e:
+                logger.error(f"Web scraping failed, continuing without: {e}")
+                web_sources = {'sources_scraped': [], 'total_sources': 0,
+                               'source_names': [], 'consensus': 'insufficient',
+                               'summary': 'Web scraping unavailable.'}
 
         # ---- Run all 5 signal analyzers ----
         plaus = self.plausibility.analyze(title, text)
@@ -679,6 +694,50 @@ class ExplainableAI:
         if plaus['score'] >= 0.35 and source['score'] >= 0.50:
             weighted_sum = max(weighted_sum, 0.55)
 
+        # ---- Web source consensus adjustment ----
+        web_consensus = web_sources.get('consensus', 'insufficient')
+        web_source_count = web_sources.get('total_sources', 0)
+
+        if web_consensus == 'mostly_denied' and web_source_count >= 2:
+            # Multiple sources deny the claim → boost misinfo score
+            weighted_sum = max(weighted_sum, 0.70)
+            all_indicators.append({
+                'type': 'web_sources_deny',
+                'score': 0.85,
+                'description': f'Web sources ({web_source_count} scraped) mostly deny or debunk this claim'
+            })
+        elif web_consensus == 'mostly_supported' and web_source_count >= 2:
+            # Sources support the claim → lower misinfo score
+            weighted_sum = min(weighted_sum, weighted_sum * 0.65)
+            all_indicators.append({
+                'type': 'web_sources_support',
+                'score': 0.15,
+                'description': f'Web sources ({web_source_count} scraped) generally support this claim'
+            })
+        elif web_consensus == 'conflicting':
+            all_indicators.append({
+                'type': 'web_sources_conflicting',
+                'score': 0.50,
+                'description': f'Web sources show conflicting information about this claim'
+            })
+
+        # Boost from fact-checker websites in scraped sources
+        fc_web_count = web_sources.get('fact_checker_sources', 0)
+        if fc_web_count > 0:
+            # Check if fact-checkers found on web also flag it
+            for ws in web_sources.get('sources_scraped', []):
+                if ws.get('source_type') == 'fact_checker':
+                    ws_text = (ws.get('full_text', '') + ws.get('title', '')).lower()
+                    deny_words = ['false', 'fake', 'hoax', 'misleading', 'debunked', 'not true']
+                    if any(w in ws_text for w in deny_words):
+                        weighted_sum = max(weighted_sum, 0.80)
+                        all_indicators.append({
+                            'type': 'fact_checker_website_deny',
+                            'score': 0.90,
+                            'description': f'{ws["source_name"]} (fact-checker) flags this claim as false/misleading'
+                        })
+                        break
+
         misinformation_likelihood = round(min(1.0, weighted_sum), 4)
         credibility_score = round(1.0 - misinformation_likelihood, 4)
 
@@ -722,10 +781,12 @@ class ExplainableAI:
                     topic_info={'labels': topic_info['labels']},
                     misinformation_likelihood=misinformation_likelihood,
                     risk_level=impact['level'],
+                    web_sources=web_sources,
                 )
                 source_attribution = self.groq.generate_source_attribution(
                     title=title, text=text,
                     fact_check_results=fact_check_results or [],
+                    web_sources=web_sources,
                 )
             except Exception as e:
                 logger.error(f"Groq reasoning failed, using fallback: {e}")
@@ -764,6 +825,29 @@ class ExplainableAI:
             'verified_claims': {},
             'source_attribution': source_attribution or '',
             'signal_scores': raw_scores,
+
+            # Web scraping results
+            'web_sources': {
+                'total': web_sources.get('total_sources', 0),
+                'source_names': web_sources.get('source_names', []),
+                'consensus': web_sources.get('consensus', 'insufficient'),
+                'summary': web_sources.get('summary', ''),
+                'fact_checker_count': web_sources.get('fact_checker_sources', 0),
+                'mainstream_count': web_sources.get('mainstream_sources', 0),
+                'sources_detail': [
+                    {
+                        'name': s.get('source_name', 'Unknown'),
+                        'domain': s.get('source_domain', ''),
+                        'type': s.get('source_type', 'unknown'),
+                        'credibility': s.get('credibility', 5.0),
+                        'title': s.get('title', ''),
+                        'snippet': s.get('snippet', '')[:200],
+                        'url': s.get('url', ''),
+                        'relevance': s.get('relevance_score', 0),
+                    }
+                    for s in web_sources.get('sources_scraped', [])[:6]
+                ],
+            },
         }
 
     # --- Amplification predictor ---

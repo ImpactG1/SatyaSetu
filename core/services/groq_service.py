@@ -77,10 +77,12 @@ class GroqReasoningService:
         topic_info: Dict,
         misinformation_likelihood: float,
         risk_level: str,
+        web_sources: Optional[Dict] = None,
     ) -> Optional[str]:
         """
         Generate a professional, detailed AI reasoning explanation.
         Returns human-quality paragraph explaining WHY this content is or isn't misinformation.
+        Now includes real web source context from scraping.
         """
         # Build context for the LLM
         indicators_text = ""
@@ -101,13 +103,33 @@ class GroqReasoningService:
 
         pct = round(misinformation_likelihood * 100, 1)
 
+        # Build web sources context
+        web_context = "No web sources scraped."
+        if web_sources and web_sources.get('total_sources', 0) > 0:
+            web_parts = []
+            source_names = web_sources.get('source_names', [])
+            consensus = web_sources.get('consensus', 'insufficient')
+            web_parts.append(f"  Scraped {web_sources['total_sources']} web sources: {', '.join(source_names[:6])}")
+            web_parts.append(f"  Source consensus: {consensus}")
+
+            for ws in web_sources.get('sources_scraped', [])[:4]:
+                ws_name = ws.get('source_name', 'Unknown')
+                ws_title = ws.get('title', '')[:100]
+                ws_snippet = ws.get('snippet', '')[:200]
+                ws_type = ws.get('source_type', 'unknown')
+                web_parts.append(f"  - {ws_name} ({ws_type}): \"{ws_title}\" — {ws_snippet}")
+
+            web_context = "\n".join(web_parts)
+
         system_prompt = (
             "You are SatyaSetu AI — a misinformation detection expert. "
             "Generate a concise, professional analysis (3-5 sentences) explaining "
             "your assessment. Reference specific sources by name when available "
             "(e.g., 'According to Hindustan Times...', 'Reuters reports...', "
-            "'IndiaToday Fact Check found...'). Be specific about what signals "
-            "raised or lowered suspicion. Do NOT use markdown. Write in plain text."
+            "'AltNews found...', 'NDTV coverage shows...'). "
+            "Use the WEB SOURCES section to cite real scraped sources by name. "
+            "Be specific about what signals raised or lowered suspicion. "
+            "Do NOT use markdown. Write in plain text."
         )
 
         user_prompt = f"""Analyze this content and explain your verdict in 3-5 clear sentences.
@@ -130,13 +152,16 @@ KEY INDICATORS:
 FACT-CHECK RESULTS:
 {fc_text}
 
+WEB SOURCES (real-time scraped):
+{web_context}
+
 SENSITIVE TOPICS: {topics_text}
 
 Write a clear, professional explanation that:
 1. States the overall verdict and confidence
-2. References specific sources/fact-checkers by name if available
+2. References specific web sources and fact-checkers by name (from WEB SOURCES above)
 3. Explains the most important red flags or credibility signals
-4. Notes the topic sensitivity and potential societal impact
+4. Notes what real news organizations are reporting about this topic
 Keep it factual and authoritative. No speculation."""
 
         return self._call_groq([
@@ -149,13 +174,15 @@ Keep it factual and authoritative. No speculation."""
         title: str,
         text: str,
         fact_check_results: List[Dict],
+        web_sources: Optional[Dict] = None,
     ) -> Optional[str]:
         """
         Generate a source-attribution summary like:
         "According to Hindustan Times and NDTV, no such incident was reported.
          AltNews rated a similar claim as False on Jan 2024."
+        Now uses real web-scraped sources for accurate attribution.
         """
-        if not fact_check_results and not self.is_available:
+        if not fact_check_results and not web_sources and not self.is_available:
             return None
 
         fc_text = "No fact-checks found for this claim."
@@ -169,8 +196,22 @@ Keep it factual and authoritative. No speculation."""
                 fc_parts.append(f"- Publisher: {publisher}, Rating: {rating}, Claim: \"{claim}\", URL: {url}")
             fc_text = "\n".join(fc_parts)
 
-        prompt = f"""Based on the following fact-check results, write a 1-2 sentence source attribution summary.
-Reference publishers by name. Be specific.
+        # Build web sources context for attribution
+        web_text = "No web sources scraped."
+        if web_sources and web_sources.get('total_sources', 0) > 0:
+            web_parts = []
+            for ws in web_sources.get('sources_scraped', [])[:5]:
+                ws_name = ws.get('source_name', 'Unknown')
+                ws_title = ws.get('title', '')[:120]
+                ws_type = ws.get('source_type', 'unknown')
+                ws_url = ws.get('url', '')
+                web_parts.append(f"- Source: {ws_name} ({ws_type}), Article: \"{ws_title}\", URL: {ws_url}")
+            web_text = "\n".join(web_parts)
+            consensus = web_sources.get('consensus', 'insufficient')
+            web_text += f"\nOverall consensus: {consensus}"
+
+        prompt = f"""Based on the following fact-check results AND web sources, write a 2-3 sentence source attribution summary.
+Reference publishers and news sources by name. Be specific about what each source reports.
 
 CLAIM: {title}
 CONTENT: {text[:300]}
@@ -178,8 +219,12 @@ CONTENT: {text[:300]}
 FACT-CHECK RESULTS:
 {fc_text}
 
-Write like: "According to [Publisher], [finding]. [Another Publisher] rated this claim as [rating]."
-If no fact-checks exist, say "No independent fact-checks were found for this claim as of now."
+WEB SOURCES (scraped from real websites):
+{web_text}
+
+Write like: "According to [Source Name], [what they report]. [Another Source] reports [finding]. [Fact-checker] rated this as [rating]."
+Reference as many real sources by name as possible.
+If no sources found, say "No independent sources or fact-checks were found for this claim as of now."
 Plain text only, no markdown."""
 
         return self._call_groq([
