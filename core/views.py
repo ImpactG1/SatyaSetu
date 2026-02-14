@@ -125,19 +125,19 @@ def analyze_content_api(request):
             published_date=timezone.now()
         )
         
-        # Run AI analysis
+        # Get fact-check results FIRST so the AI can cross-reference them
+        fact_check_service = GoogleFactCheckService()
+        fact_checks = fact_check_service.search_claims(title)
+        
+        # Run AI analysis with fact-check cross-referencing
         ai_engine = ExplainableAI()
         analysis_results = ai_engine.analyze_content(
             title=title,
             text=text,
             url=url,
-            source_credibility=source.credibility_score
+            source_credibility=source.credibility_score,
+            fact_check_results=fact_checks
         )
-        
-        # Get fact-check results
-        fact_check_service = GoogleFactCheckService()
-        fact_checks = fact_check_service.search_claims(title)
-        analysis_results['fact_check_results'] = fact_checks
         
         # Save analysis
         analysis = MisinformationAnalysis.objects.create(
@@ -270,12 +270,17 @@ def fetch_news_api(request):
                 # Auto-analyze if requested
                 if auto_analyze:
                     try:
+                        # Fetch fact-checks for cross-referencing
+                        fc_service = GoogleFactCheckService()
+                        fc_results = fc_service.search_claims(content.title)
+                        
                         ai_engine = ExplainableAI()
                         analysis_results = ai_engine.analyze_content(
                             title=content.title,
                             text=content.text,
                             url=content.url,
-                            source_credibility=source.credibility_score
+                            source_credibility=source.credibility_score,
+                            fact_check_results=fc_results
                         )
                         
                         MisinformationAnalysis.objects.create(

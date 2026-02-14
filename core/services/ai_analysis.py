@@ -1,546 +1,836 @@
 """
-AI Analysis Engine
-Explainable AI for misinformation detection, risk prediction, and impact assessment
+AI Analysis Engine v2 — Deep Misinformation Detection
+Explainable AI for misinformation detection, risk prediction, and impact assessment.
+
+Key improvements over v1:
+- Claim plausibility analysis (detects extraordinary/implausible claims)
+- Numerical anomaly detection (flags unrealistic numbers)
+- Vague attribution detection ("according to media", "sources say")
+- Cross-referencing with fact-check API results
+- Semantic topic sensitivity (crime, health, politics get higher base scores)
+- Multi-signal fusion with proper weighting
+- Much better explanation generation
 """
 
 import re
+import math
 import logging
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 from datetime import datetime
 import json
 
-# NLP & Sentiment Analysis
 try:
     from textblob import TextBlob
-    from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
-    import nltk
-    # Download required NLTK data (run once)
-    # nltk.download('punkt', quiet=True)
-    # nltk.download('stopwords', quiet=True)
 except ImportError:
-    pass
+    TextBlob = None
+
+try:
+    from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+except ImportError:
+    SentimentIntensityAnalyzer = None
 
 import numpy as np
-from collections import Counter
 
 logger = logging.getLogger(__name__)
 
 
-class MisinformationDetector:
-    """Detect misinformation using multiple heuristics and NLP techniques"""
-    
-    # Misinformation indicators
+# ---------------------------------------------------------------------------
+# Signal 1 – Claim Plausibility Analyzer
+# ---------------------------------------------------------------------------
+
+class ClaimPlausibilityAnalyzer:
+    """
+    Detects implausible, extraordinary, or unverifiable claims.
+    This is the MOST important signal — it catches things like
+    "500 girls kidnapped in Mumbai and Delhi".
+    """
+
+    # Patterns that indicate extraordinary / hard-to-believe claims
+    EXTRAORDINARY_PATTERNS = [
+        # Mass-casualty / mass-victim claims with large numbers
+        (r'\b(\d{2,})\s*(people|persons|children|girls|boys|women|men|students|workers|soldiers|victims|dead|killed|murdered|kidnapped|abducted|missing|injured|infected|died|hospitalized|trapped|displaced|stranded)\b', 'mass_event'),
+        (r'\b(kidnapped|abducted|missing|murdered|killed|dead|arrested|raped|assaulted|lynched|trafficked)\b.*?\b(\d{2,})\b', 'mass_event_reverse'),
+        (r'\b(\d{2,})\b.*?\b(kidnapped|abducted|missing|murdered|killed|dead|arrested|raped|assaulted|lynched|trafficked)\b', 'mass_event_forward'),
+        # Absolute / universal claims
+        (r'\b(all|every\s+single|always|never|no\s+one|everyone|100\s*%|completely|totally|entirely|zero\s+cases)\b', 'absolute_claim'),
+        # Conspiracy language
+        (r'\b(cover[\s-]*up|conspiracy|secret\s*plan|hidden\s*agenda|they\s+don\'?t\s+want|suppressed|censored|silenced|big\s+pharma|deep\s+state|new\s+world\s+order|illuminati|globalist|cabal)\b', 'conspiracy'),
+        # Miracle / impossible claims
+        (r'\b(cure[sd]?\s+(cancer|aids|hiv|diabetes|covid)|miracle\s+cure|100\s*%\s*(effective|safe|cure)|instantly\s+(cure|heal)|eliminate\s+all)\b', 'miracle_claim'),
+        # Doomsday / catastrophe
+        (r'\b(end\s+of\s+(the\s+)?world|apocalypse|martial\s+law|civil\s+war|total\s+collapse|mass\s+extinction|world\s+war\s+3)\b', 'doomsday'),
+        # Secret knowledge / suppressed truth
+        (r'\b(what\s+they\s+hide|government\s+hiding|media\s+won\'?t\s+(tell|show|report)|exposed|exposed!|exposed:)\b', 'suppressed_truth'),
+    ]
+
+    # Vague / unverifiable attribution patterns
+    VAGUE_ATTRIBUTION = [
+        r'\baccording\s+to\s+(media|sources?|reports?|some|many|experts?|officials?|insiders?)\b',
+        r'\b(sources?\s+say|sources?\s+claim|sources?\s+report|reports?\s+suggest|it\s+is\s+said|people\s+are\s+saying|many\s+are\s+saying)\b',
+        r'\b(unnamed\s+source|anonymous\s+source|a\s+source\s+close\s+to|undisclosed|unconfirmed)\b',
+        r'\b(some\s+experts?|some\s+scientists?|some\s+doctors?)\s+(say|claim|believe|suggest)\b',
+        r'\b(viral|going\s+viral|trending|circulating|forwarded)\b',
+        r'\b(whatsapp|forward|received\s+this|share\s+this)\b',
+    ]
+
+    CRIME_KEYWORDS = [
+        'kidnap', 'kidnapped', 'kidnapping', 'abducted', 'abduction',
+        'murder', 'murdered', 'killed', 'dead', 'rape', 'raped',
+        'assault', 'assaulted', 'attack', 'attacked', 'bomb', 'bombing',
+        'explosion', 'shooting', 'shot', 'stabbing', 'stabbed', 'riot',
+        'looting', 'arson', 'missing', 'trafficking', 'trafficked',
+        'hostage', 'massacre', 'genocide', 'lynching', 'lynched', 'mob',
+    ]
+
+    HEALTH_SCARE_KEYWORDS = [
+        'vaccine', 'vaccinated', 'died after', 'death after', 'side effect',
+        'causes cancer', 'causes death', 'toxic', 'poison', 'poisoned',
+        'microchip', 'infertility', '5g', 'radiation', 'bioweapon',
+        'lab leak', 'man-made virus', 'depopulation', 'sterilization',
+    ]
+
+    def analyze(self, title: str, text: str) -> Dict:
+        full = f"{title} {text}"
+        full_lower = full.lower()
+
+        score = 0.0
+        indicators = []
+
+        # --- A. Extraordinary claim detection ---
+        for pattern, claim_type in self.EXTRAORDINARY_PATTERNS:
+            matches = re.findall(pattern, full_lower, re.IGNORECASE)
+            if matches:
+                if claim_type in ('mass_event', 'mass_event_reverse', 'mass_event_forward'):
+                    # Extract all numbers from the full text
+                    numbers = [int(n) for n in re.findall(r'\b(\d+)\b', full) if n.isdigit()]
+                    large_nums = [n for n in numbers if n >= 10]
+                    if large_nums:
+                        biggest = max(large_nums)
+                        # 10 → 0.3, 50 → 0.65, 100 → 0.8, 200+ → 1.0
+                        num_score = min(1.0, 0.2 + biggest / 250)
+                        score += num_score * 0.40
+                        indicators.append({
+                            'type': 'extraordinary_claim',
+                            'score': round(num_score, 3),
+                            'description': f'Claims mass event involving {biggest}+ people — extraordinary claim requiring strong evidence from official sources'
+                        })
+                        break  # Don't double-count the same claim
+                elif claim_type == 'conspiracy':
+                    score += 0.30
+                    indicators.append({
+                        'type': 'conspiracy_language',
+                        'score': 0.75,
+                        'description': 'Contains conspiracy-theory language patterns'
+                    })
+                elif claim_type == 'miracle_claim':
+                    score += 0.35
+                    indicators.append({
+                        'type': 'miracle_claim',
+                        'score': 0.85,
+                        'description': 'Makes miraculous / scientifically implausible health claims'
+                    })
+                elif claim_type == 'doomsday':
+                    score += 0.25
+                    indicators.append({
+                        'type': 'doomsday_claim',
+                        'score': 0.65,
+                        'description': 'Contains doomsday / catastrophe predictions'
+                    })
+                elif claim_type == 'absolute_claim':
+                    score += 0.08
+                    indicators.append({
+                        'type': 'absolute_language',
+                        'score': 0.25,
+                        'description': 'Uses absolute language (all, every, never, 100%)'
+                    })
+                elif claim_type == 'suppressed_truth':
+                    score += 0.20
+                    indicators.append({
+                        'type': 'suppressed_truth',
+                        'score': 0.55,
+                        'description': 'Claims information is being hidden or suppressed'
+                    })
+
+        # --- B. Numerical anomaly detection (separate from extraordinary patterns) ---
+        numbers_in_text = [int(n) for n in re.findall(r'\b(\d+)\b', full) if n.isdigit()]
+        has_crime = any(kw in full_lower for kw in self.CRIME_KEYWORDS)
+        has_health = any(kw in full_lower for kw in self.HEALTH_SCARE_KEYWORDS)
+
+        if numbers_in_text and (has_crime or has_health):
+            large_numbers = [n for n in numbers_in_text if n >= 15]
+            if large_numbers:
+                biggest = max(large_numbers)
+                # For crime: even 15+ victims in a single event is noteworthy
+                num_anomaly = min(1.0, 0.3 + biggest / 150)
+                already_flagged = any(i['type'] == 'extraordinary_claim' for i in indicators)
+                if not already_flagged:
+                    score += num_anomaly * 0.25
+                    context = 'crime/violence' if has_crime else 'health scare'
+                    indicators.append({
+                        'type': 'numerical_anomaly',
+                        'score': round(num_anomaly, 3),
+                        'description': f'Large number ({biggest}) in {context} context — such claims need official verification'
+                    })
+
+        # --- C. Vague attribution ---
+        vague_count = sum(1 for p in self.VAGUE_ATTRIBUTION if re.search(p, full_lower))
+        if vague_count > 0:
+            vague_score = min(1.0, vague_count * 0.25)
+            score += vague_score * 0.20
+            indicators.append({
+                'type': 'vague_attribution',
+                'score': round(vague_score, 3),
+                'description': f'Uses vague/unverifiable attributions ({vague_count} found, e.g. "according to media") instead of naming specific credible sources'
+            })
+
+        # --- D. Thin content (real news articles have substance) ---
+        word_count = len(full.split())
+        if word_count < 40:
+            thinness = min(1.0, (40 - word_count) / 30)
+            score += thinness * 0.15
+            indicators.append({
+                'type': 'thin_content',
+                'score': round(thinness, 3),
+                'description': f'Very short content ({word_count} words) — credible reports include who, what, when, where, and official statements'
+            })
+
+        return {
+            'score': min(1.0, score),
+            'indicators': indicators,
+        }
+
+
+# ---------------------------------------------------------------------------
+# Signal 2 – Linguistic Red-Flag Detector
+# ---------------------------------------------------------------------------
+
+class LinguisticAnalyzer:
+    """Surface-level linguistic signals — clickbait, sensationalism, emotion."""
+
     CLICKBAIT_PATTERNS = [
-        r'you won\'t believe',
-        r'shocking',
-        r'doctors hate',
-        r'this one trick',
-        r'what happens next',
-        r'number \d+ will shock you',
-        r'the truth about',
-        r'they don\'t want you to know',
-        r'miracle cure',
-        r'!\s*$',  # Excessive exclamation
+        r'you\s+won\'?t\s+believe', r'what\s+happens\s+next', r'number\s+\d+\s+will\s+shock',
+        r'this\s+one\s+trick', r'doctors\s+hate', r'they\s+don\'?t\s+want\s+you\s+to\s+know',
+        r'the\s+real\s+truth', r'click\s+here', r'share\s+before\s+(it\'?s?\s+)?deleted',
+        r'banned\s+video', r'exposed!', r'must\s+watch', r'must\s+read', r'please\s+share',
     ]
-    
-    SENSATIONAL_WORDS = [
-        'breaking', 'urgent', 'exposed', 'revealed', 'secret', 'hidden',
-        'conspiracy', 'coverup', 'shocking', 'unbelievable', 'scandal',
-        'explosive', 'bombshell', 'exclusive', 'leaked'
-    ]
-    
-    EMOTIONAL_TRIGGER_WORDS = {
-        'fear': ['danger', 'threat', 'warning', 'terror', 'deadly', 'fatal', 'disaster'],
-        'anger': ['outrage', 'fury', 'rage', 'angry', 'hate', 'disgust'],
-        'surprise': ['shocking', 'unbelievable', 'amazing', 'stunning'],
+
+    SENSATIONAL_WORDS = {
+        'shocking', 'breaking', 'urgent', 'exposed', 'revealed', 'secret', 'hidden',
+        'conspiracy', 'coverup', 'unbelievable', 'scandal', 'explosive', 'bombshell',
+        'exclusive', 'leaked', 'horrifying', 'terrifying', 'horrific', 'brutal',
+        'devastating', 'alarming', 'outrageous', 'disgusting', 'sickening',
+        'frightening', 'gruesome', 'appalling', 'atrocious',
     }
-    
+
+    EMOTIONAL_TRIGGERS = {
+        'fear':  {'danger', 'threat', 'warning', 'terror', 'deadly', 'fatal', 'disaster',
+                  'panic', 'crisis', 'emergency', 'horrifying', 'scary', 'nightmare'},
+        'anger': {'outrage', 'fury', 'rage', 'angry', 'hate', 'disgust', 'betrayal',
+                  'corruption', 'scam', 'fraud', 'injustice', 'shameful'},
+        'shock': {'shocking', 'unbelievable', 'incredible', 'stunning', 'jaw-dropping',
+                  'mind-blowing', 'disturbing', 'heartbreaking'},
+    }
+
     def __init__(self):
-        try:
-            self.vader = SentimentIntensityAnalyzer()
-        except:
-            self.vader = None
-            logger.warning("VADER sentiment analyzer not available")
-    
-    def analyze(self, title: str, text: str, source_credibility: float = 5.0) -> Dict:
-        """
-        Comprehensive analysis of content for misinformation
-        
-        Args:
-            title: Content title
-            text: Content body text
-            source_credibility: Source credibility score (0-10)
-            
-        Returns:
-            Dictionary with detection results
-        """
-        # Initialize results
-        results = {
-            'misinformation_likelihood': 0.0,
-            'credibility_score': 0.0,
-            'bias_score': 0.0,
-            'key_indicators': [],
-            'explanation': '',
-            'confidence': 0.0
-        }
-        
-        # Combine title and text for full analysis
-        full_text = f"{title} {text}"
-        
-        # 1. Clickbait detection
-        clickbait_score = self._detect_clickbait(title)
-        if clickbait_score > 0.5:
-            results['key_indicators'].append({
-                'type': 'clickbait',
-                'score': clickbait_score,
-                'description': 'Title contains clickbait patterns'
+        self.vader = None
+        if SentimentIntensityAnalyzer is not None:
+            try:
+                self.vader = SentimentIntensityAnalyzer()
+            except Exception:
+                pass
+
+    def analyze(self, title: str, text: str) -> Dict:
+        full = f"{title} {text}"
+        full_lower = full.lower()
+        words = full_lower.split()
+        word_count = len(words) or 1
+
+        indicators = []
+        scores = {}
+
+        # Clickbait
+        clickbait_hits = sum(1 for p in self.CLICKBAIT_PATTERNS if re.search(p, full_lower))
+        excl = title.count('!')
+        title_len = len(title) or 1
+        caps_ratio = sum(1 for c in title if c.isupper()) / title_len
+        scores['clickbait'] = min(1.0,
+            clickbait_hits * 0.25 +
+            min(excl, 3) * 0.15 +
+            (max(0, caps_ratio - 0.15) * 2.0)
+        )
+        if scores['clickbait'] > 0.15:
+            indicators.append({
+                'type': 'clickbait', 'score': round(scores['clickbait'], 3),
+                'description': 'Title uses clickbait patterns, excessive punctuation, or ALL-CAPS'
             })
-        
-        # 2. Sensationalism detection
-        sensational_score = self._detect_sensationalism(full_text)
-        if sensational_score > 0.3:
-            results['key_indicators'].append({
-                'type': 'sensationalism',
-                'score': sensational_score,
-                'description': 'Content contains sensational language'
+
+        # Sensationalism
+        sensational_hits = sum(1 for w in words if w.strip('.,!?;:"\'-') in self.SENSATIONAL_WORDS)
+        scores['sensationalism'] = min(1.0, sensational_hits * 0.12 + (sensational_hits / word_count) * 15)
+        if scores['sensationalism'] > 0.1:
+            indicators.append({
+                'type': 'sensationalism', 'score': round(scores['sensationalism'], 3),
+                'description': f'Contains {sensational_hits} sensational/loaded word(s)'
             })
-        
-        # 3. Emotional manipulation
-        emotion_scores = self._analyze_emotional_manipulation(full_text)
-        if max(emotion_scores.values()) > 0.4:
-            results['key_indicators'].append({
-                'type': 'emotional_manipulation',
-                'scores': emotion_scores,
-                'description': 'Content uses emotional trigger words'
-            })
-        
-        # 4. Lack of sources/citations
-        citation_score = self._check_citations(text)
-        if citation_score < 0.3:
-            results['key_indicators'].append({
-                'type': 'lack_of_sources',
-                'score': citation_score,
-                'description': 'Content lacks proper citations or sources'
-            })
-        
-        # 5. Grammar and writing quality
-        quality_score = self._assess_writing_quality(text)
-        if quality_score < 0.5:
-            results['key_indicators'].append({
-                'type': 'poor_quality',
-                'score': quality_score,
-                'description': 'Poor writing quality or excessive errors'
-            })
-        
-        # Calculate overall scores
-        misinformation_indicators = [
-            clickbait_score * 0.2,
-            sensational_score * 0.25,
-            max(emotion_scores.values()) * 0.2,
-            (1 - citation_score) * 0.2,
-            (1 - quality_score) * 0.15
-        ]
-        
-        # Factor in source credibility (inverse relationship)
-        source_factor = (10 - source_credibility) / 10
-        
-        results['misinformation_likelihood'] = min(1.0, np.mean(misinformation_indicators) * (1 + source_factor * 0.5))
-        results['credibility_score'] = max(0.0, 1.0 - results['misinformation_likelihood'])
-        results['bias_score'] = self._calculate_bias(full_text)
-        results['confidence'] = min(0.95, 0.5 + len(results['key_indicators']) * 0.1)
-        
-        # Generate explanation
-        results['explanation'] = self._generate_explanation(results)
-        
-        return results
-    
-    def _detect_clickbait(self, title: str) -> float:
-        """Detect clickbait patterns in title"""
-        if not title:
-            return 0.0
-        
-        title_lower = title.lower()
-        matches = sum(1 for pattern in self.CLICKBAIT_PATTERNS if re.search(pattern, title_lower))
-        
-        # Check for excessive punctuation
-        exclamation_count = title.count('!')
-        question_count = title.count('?')
-        
-        score = (matches * 0.3) + (min(exclamation_count, 3) * 0.1) + (min(question_count, 2) * 0.05)
-        return min(1.0, score)
-    
-    def _detect_sensationalism(self, text: str) -> float:
-        """Detect sensational language"""
-        if not text:
-            return 0.0
-        
-        text_lower = text.lower()
-        words = text_lower.split()
-        
-        if not words:
-            return 0.0
-        
-        sensational_count = sum(1 for word in words if word in self.SENSATIONAL_WORDS)
-        score = sensational_count / len(words) * 100  # Normalize
-        
-        return min(1.0, score)
-    
-    def _analyze_emotional_manipulation(self, text: str) -> Dict[str, float]:
-        """Analyze emotional trigger words"""
-        if not text:
-            return {emotion: 0.0 for emotion in self.EMOTIONAL_TRIGGER_WORDS}
-        
-        text_lower = text.lower()
-        words = text_lower.split()
-        
-        if not words:
-            return {emotion: 0.0 for emotion in self.EMOTIONAL_TRIGGER_WORDS}
-        
+
+        # Emotional manipulation
         emotion_scores = {}
-        for emotion, trigger_words in self.EMOTIONAL_TRIGGER_WORDS.items():
-            count = sum(1 for word in words if word in trigger_words)
-            emotion_scores[emotion] = min(1.0, count / len(words) * 100)
-        
-        return emotion_scores
-    
-    def _check_citations(self, text: str) -> float:
-        """Check for citations and sources"""
-        if not text:
-            return 0.0
-        
-        # Look for citation patterns
-        citation_patterns = [
-            r'according to',
-            r'study shows',
-            r'research suggests',
-            r'expert says',
-            r'reported by',
-            r'source:',
-            r'http[s]?://',
-            r'\[\d+\]',  # Reference numbers
-        ]
-        
-        matches = sum(1 for pattern in citation_patterns if re.search(pattern, text.lower()))
-        return min(1.0, matches * 0.2)
-    
-    def _assess_writing_quality(self, text: str) -> float:
-        """Assess writing quality"""
-        if not text or len(text) < 50:
-            return 0.5
-        
-        # Simple quality heuristics
-        sentences = text.split('.')
-        if not sentences:
-            return 0.5
-        
-        # Check average sentence length
-        avg_sentence_length = len(text) / len(sentences)
-        
-        # Check for excessive capitals
-        upper_ratio = sum(1 for c in text if c.isupper()) / len(text)
-        
-        quality = 0.7
-        if avg_sentence_length < 10 or avg_sentence_length > 200:
-            quality -= 0.2
-        if upper_ratio > 0.15:  # Too many capitals
-            quality -= 0.3
-        
-        return max(0.0, quality)
-    
-    def _calculate_bias(self, text: str) -> float:
-        """Calculate potential bias in text"""
-        if not text or not self.vader:
-            return 0.0
-        
-        # Use VADER for sentiment
-        sentiment = self.vader.polarity_scores(text)
-        compound = abs(sentiment['compound'])  # Absolute value - extreme in either direction
-        
-        return min(1.0, compound)
-    
-    def _generate_explanation(self, results: Dict) -> str:
-        """Generate human-readable explanation"""
-        likelihood = results['misinformation_likelihood']
-        indicators = results['key_indicators']
-        
-        if likelihood < 0.3:
-            explanation = "Content appears credible with low risk of misinformation. "
-        elif likelihood < 0.6:
-            explanation = "Content shows moderate signs of misinformation. "
-        else:
-            explanation = "Content has high likelihood of misinformation. "
-        
-        if indicators:
-            explanation += "Key concerns: "
-            concerns = [ind['description'] for ind in indicators[:3]]
-            explanation += "; ".join(concerns) + "."
-        
-        return explanation
+        for emotion, trigger_set in self.EMOTIONAL_TRIGGERS.items():
+            hits = sum(1 for w in words if w.strip('.,!?;:"\'-') in trigger_set)
+            emotion_scores[emotion] = min(1.0, hits * 0.18)
+        max_emotion = max(emotion_scores.values()) if emotion_scores else 0
+        scores['emotion'] = max_emotion
+        if max_emotion > 0.1:
+            top_emotion = max(emotion_scores, key=emotion_scores.get)
+            indicators.append({
+                'type': 'emotional_trigger', 'score': round(max_emotion, 3),
+                'description': f'Uses language that triggers {top_emotion}'
+            })
 
+        # VADER sentiment
+        sentiment_compound = 0.0
+        neg_score = 0.0
+        if self.vader:
+            vs = self.vader.polarity_scores(full)
+            sentiment_compound = vs['compound']
+            neg_score = vs['neg']
+            if neg_score > 0.30:
+                scores['negative_tone'] = neg_score
+                indicators.append({
+                    'type': 'negative_tone', 'score': round(neg_score, 3),
+                    'description': f'Strongly negative emotional tone ({neg_score:.0%} negative)'
+                })
 
-class RiskPredictor:
-    """Predict amplification risk and societal impact"""
-    
-    def predict_amplification_risk(self, content_data: Dict, 
-                                    misinformation_score: float,
-                                    sentiment_score: float) -> Dict:
-        """
-        Predict likelihood of content going viral
-        
-        Args:
-            content_data: Content metadata
-            misinformation_score: Misinformation likelihood score
-            sentiment_score: Sentiment analysis score
-            
-        Returns:
-            Dictionary with amplification predictions
-        """
-        # Factors that increase virality:
-        # 1. High emotional content
-        # 2. Controversial/shocking nature
-        # 3. Simple/shareable message
-        # 4. Timing and relevance
-        
-        emotional_factor = abs(sentiment_score) * 0.3  # Strong emotions increase sharing
-        misinformation_factor = misinformation_score * 0.4  # Sensational content spreads faster
-        
-        # Calculate base amplification risk
-        amplification_risk = min(1.0, emotional_factor + misinformation_factor + 0.2)
-        
-        # Estimate reach based on content characteristics
-        base_reach = 1000
-        if amplification_risk > 0.7:
-            estimated_reach = base_reach * 100  # High risk = potential massive reach
-        elif amplification_risk > 0.5:
-            estimated_reach = base_reach * 50
-        elif amplification_risk > 0.3:
-            estimated_reach = base_reach * 10
-        else:
-            estimated_reach = base_reach
-        
-        # Velocity score (speed of spread)
-        velocity_score = amplification_risk * 0.8
-        
+        # ALL-CAPS abuse
+        allcaps = [w for w in full.split() if w.isupper() and len(w) > 2]
+        if len(allcaps) >= 2:
+            cap_score = min(1.0, len(allcaps) * 0.15)
+            scores['caps_abuse'] = cap_score
+            indicators.append({
+                'type': 'caps_abuse', 'score': round(cap_score, 3),
+                'description': f'{len(allcaps)} words in ALL CAPS — shouting/alarm pattern'
+            })
+
+        combined = (
+            scores.get('clickbait', 0) * 0.15 +
+            scores.get('sensationalism', 0) * 0.25 +
+            scores.get('emotion', 0) * 0.25 +
+            scores.get('negative_tone', 0) * 0.20 +
+            scores.get('caps_abuse', 0) * 0.15
+        )
+
         return {
-            'amplification_risk': amplification_risk,
-            'estimated_reach': int(estimated_reach),
-            'velocity_score': velocity_score,
-            'explanation': self._explain_amplification(amplification_risk)
+            'score': min(1.0, combined),
+            'sentiment_compound': sentiment_compound,
+            'indicators': indicators,
         }
-    
-    def _explain_amplification(self, risk: float) -> str:
-        """Explain amplification risk"""
-        if risk > 0.7:
-            return "High risk of rapid viral spread. Content has characteristics that typically result in massive amplification."
-        elif risk > 0.5:
-            return "Moderate-to-high amplification risk. Content likely to spread significantly within target communities."
-        elif risk > 0.3:
-            return "Moderate amplification risk. Content may gain traction but unlikely to go viral."
-        else:
-            return "Low amplification risk. Limited spread expected."
-    
-    def assess_societal_impact(self, content_data: Dict,
-                               misinformation_score: float,
-                               amplification_risk: float,
-                               topics: List[str]) -> Dict:
-        """
-        Assess potential real-world societal impact
-        
-        Args:
-            content_data: Content metadata
-            misinformation_score: Misinformation likelihood
-            amplification_risk: Predicted amplification risk
-            topics: Affected topics/categories
-            
-        Returns:
-            Dictionary with impact assessment
-        """
-        # High-impact topics
-        sensitive_topics = ['health', 'medical', 'vaccine', 'election', 'politics', 
-                           'security', 'emergency', 'public safety', 'financial', 'legal']
-        
-        # Check if content relates to sensitive topics
-        topic_sensitivity = 0.0
-        affected_topics = []
-        for topic in topics:
-            if any(sensitive in topic.lower() for sensitive in sensitive_topics):
-                topic_sensitivity += 0.3
-                affected_topics.append(topic)
-        
-        topic_sensitivity = min(1.0, topic_sensitivity)
-        
-        # Calculate impact score (0-10 scale)
-        impact_components = [
-            misinformation_score * 0.4,  # How misleading is it?
-            amplification_risk * 0.3,     # How far will it spread?
-            topic_sensitivity * 0.3       # How sensitive is the topic?
-        ]
-        
-        societal_impact_score = sum(impact_components) * 10
-        
-        # Determine risk level
-        if societal_impact_score >= 7.5:
-            risk_level = 'critical'
-        elif societal_impact_score >= 5.0:
-            risk_level = 'high'
-        elif societal_impact_score >= 2.5:
-            risk_level = 'medium'
-        else:
-            risk_level = 'low'
-        
-        return {
-            'societal_impact_score': round(societal_impact_score, 2),
-            'risk_level': risk_level,
-            'affected_topics': affected_topics,
-            'explanation': self._explain_impact(societal_impact_score, risk_level, affected_topics)
-        }
-    
-    def _explain_impact(self, score: float, level: str, topics: List[str]) -> str:
-        """Explain societal impact"""
-        explanation = f"Impact Score: {score}/10 ({level.upper()} risk). "
-        
-        if level == 'critical':
-            explanation += "IMMEDIATE ACTION REQUIRED. Content poses severe threat to public welfare or safety."
-        elif level == 'high':
-            explanation += "HIGH PRIORITY. Content could significantly influence public opinion or behavior."
-        elif level == 'medium':
-            explanation += "MONITOR CLOSELY. Content has moderate potential for real-world consequences."
-        else:
-            explanation += "LOW PRIORITY. Limited real-world impact expected."
-        
-        if topics:
-            explanation += f" Affects sensitive areas: {', '.join(topics)}."
-        
-        return explanation
 
+
+# ---------------------------------------------------------------------------
+# Signal 3 – Source / Citation Quality
+# ---------------------------------------------------------------------------
+
+class SourceQualityAnalyzer:
+    """Checks whether the content cites credible, verifiable sources."""
+
+    CREDIBLE_PATTERNS = [
+        r'(reuters|associated\s+press|ap\s+news|bbc|afp|pti|ani|ians)\s+(report|said|confirmed)',
+        r'(official\s+statement|press\s+release|government\s+(said|confirmed)|ministry\s+of)',
+        r'(police\s+(said|confirmed|reported|spokesperson)|commissioner|inspector\s+general)',
+        r'(published\s+in|peer[\s-]reviewed|doi:|arxiv|journal\s+of)',
+        r'https?://[a-zA-Z0-9.-]+\.(gov|edu|org|int)/',
+        r'(fir\s+(filed|registered|lodged)|chargesheet|court\s+order)',
+        r'(spokesperson|press\s+secretary|official\s+spokesperson)',
+        r'(study\s+published|research\s+from|university\s+of)',
+    ]
+
+    WEAK_PATTERNS = [
+        r'according\s+to\s+(media|sources?|reports?|whatsapp|facebook|twitter|social\s+media|instagram)',
+        r'(sources?\s+say|sources?\s+claim|it\s+is\s+said|people\s+say|people\s+are\s+saying)',
+        r'(forwarded\s+as\s+received|share\s+this|must\s+read|please\s+share|send\s+to\s+everyone)',
+        r'(watch\s+the\s+video|see\s+the\s+proof|in\s+this\s+video)',
+        r'(whatsapp|forward|received\s+this|chain\s+message)',
+    ]
+
+    def analyze(self, text: str) -> Dict:
+        text_lower = text.lower()
+        indicators = []
+
+        credible_count = sum(1 for p in self.CREDIBLE_PATTERNS if re.search(p, text_lower))
+        weak_count = sum(1 for p in self.WEAK_PATTERNS if re.search(p, text_lower))
+
+        if credible_count == 0 and weak_count == 0:
+            score = 0.55
+            indicators.append({
+                'type': 'no_sources', 'score': 0.55,
+                'description': 'No verifiable sources or official references cited'
+            })
+        elif credible_count == 0 and weak_count > 0:
+            score = 0.75
+            indicators.append({
+                'type': 'weak_sources_only', 'score': 0.75,
+                'description': f'Only vague/unverifiable attributions ({weak_count} found), no credible official source cited'
+            })
+        elif credible_count > 0 and weak_count > credible_count:
+            score = 0.35
+            indicators.append({
+                'type': 'mixed_sources', 'score': 0.35,
+                'description': 'Mix of credible and vague sources'
+            })
+        elif credible_count > 0:
+            score = max(0.05, 0.20 - credible_count * 0.05)
+            if score <= 0.10:
+                indicators.append({
+                    'type': 'well_sourced', 'score': round(score, 3),
+                    'description': f'Content cites {credible_count} credible/official source(s)'
+                })
+        else:
+            score = 0.40
+
+        return {
+            'score': min(1.0, score),
+            'credible_count': credible_count,
+            'weak_count': weak_count,
+            'indicators': indicators,
+        }
+
+
+# ---------------------------------------------------------------------------
+# Signal 4 – Fact-Check Cross-Reference
+# ---------------------------------------------------------------------------
+
+class FactCheckCrossReferencer:
+    """
+    Uses results from Google Fact Check API to adjust scores.
+    If the claim has been fact-checked as FALSE → huge red flag.
+    If fact-checked as TRUE → strong credibility signal.
+    """
+
+    FALSE_KEYWORDS = [
+        'false', 'fake', 'pants on fire', 'misleading', 'mostly false',
+        'incorrect', 'fabricated', 'hoax', 'unproven', 'no evidence',
+        'not true', 'baseless', 'debunked', 'manipulated', 'satire',
+        'scam', 'rumor', 'rumour', 'altered', 'doctored', 'out of context',
+    ]
+    TRUE_KEYWORDS = [
+        'true', 'correct', 'mostly true', 'verified', 'confirmed', 'accurate',
+    ]
+    MIXED_KEYWORDS = [
+        'half true', 'partly true', 'mixture', 'partly false', 'needs context',
+        'missing context', 'unverified', 'mixed',
+    ]
+
+    def analyze(self, fact_check_results: List[Dict]) -> Dict:
+        if not fact_check_results:
+            return {
+                'score': 0.30,
+                'has_results': False,
+                'false_count': 0,
+                'true_count': 0,
+                'indicators': [{
+                    'type': 'no_fact_checks',
+                    'score': 0.30,
+                    'description': 'No existing fact-checks found for this claim — cannot cross-verify with known fact-checkers'
+                }]
+            }
+
+        false_count = 0
+        true_count = 0
+        mixed_count = 0
+        indicators = []
+
+        for fc in fact_check_results:
+            rating = (fc.get('rating') or '').lower()
+            if any(kw in rating for kw in self.FALSE_KEYWORDS):
+                false_count += 1
+            elif any(kw in rating for kw in self.TRUE_KEYWORDS):
+                true_count += 1
+            elif any(kw in rating for kw in self.MIXED_KEYWORDS):
+                mixed_count += 1
+
+        if false_count > 0:
+            score = min(1.0, 0.65 + false_count * 0.12)
+            indicators.append({
+                'type': 'fact_checked_false',
+                'score': round(score, 3),
+                'description': f'⚠️ FACT-CHECKED AS FALSE/MISLEADING by {false_count} independent fact-checker(s)!'
+            })
+        elif mixed_count > 0 and true_count == 0:
+            score = 0.45
+            indicators.append({
+                'type': 'fact_check_mixed',
+                'score': 0.45,
+                'description': f'Fact-checkers rate this as MIXED / NEEDS CONTEXT ({mixed_count} reviews)'
+            })
+        elif true_count > 0 and false_count == 0:
+            score = max(0.0, 0.10 - true_count * 0.05)
+            indicators.append({
+                'type': 'fact_checked_true',
+                'score': round(score, 3),
+                'description': f'✅ Verified as TRUE by {true_count} fact-checker(s)'
+            })
+        else:
+            score = 0.25
+            indicators.append({
+                'type': 'fact_check_inconclusive',
+                'score': 0.25,
+                'description': f'Fact-check results inconclusive ({len(fact_check_results)} results reviewed)'
+            })
+
+        return {
+            'score': min(1.0, score),
+            'has_results': True,
+            'false_count': false_count,
+            'true_count': true_count,
+            'indicators': indicators,
+        }
+
+
+# ---------------------------------------------------------------------------
+# Signal 5 – Topic Sensitivity Classifier
+# ---------------------------------------------------------------------------
+
+class TopicSensitivityClassifier:
+    """Classifies content into topics and assesses sensitivity level."""
+
+    TOPIC_MAP = {
+        'public_safety': {
+            'keywords': [
+                'kidnap', 'kidnapped', 'kidnapping', 'abducted', 'abduction',
+                'murder', 'murdered', 'killed', 'killing', 'shooting', 'bombing',
+                'attack', 'attacked', 'riot', 'violence', 'violent', 'crime',
+                'rape', 'raped', 'assault', 'stabbing', 'robbery', 'missing',
+                'trafficking', 'hostage', 'terrorist', 'terrorism', 'explosion',
+                'mob', 'lynching', 'lynched', 'massacre', 'genocide', 'arson',
+            ],
+            'sensitivity': 0.95,
+            'label': 'Public Safety / Crime',
+        },
+        'health': {
+            'keywords': [
+                'vaccine', 'vaccination', 'disease', 'virus', 'pandemic', 'epidemic',
+                'hospital', 'doctor', 'medical', 'health', 'cancer', 'drug',
+                'medicine', 'treatment', 'cure', 'death toll', 'infected', 'patient',
+                'symptom', 'outbreak', 'quarantine', 'WHO', 'CDC',
+            ],
+            'sensitivity': 0.90,
+            'label': 'Health / Medical',
+        },
+        'politics': {
+            'keywords': [
+                'election', 'government', 'president', 'prime minister', 'minister',
+                'congress', 'parliament', 'political', 'party', 'vote', 'voting',
+                'democracy', 'opposition', 'ruling', 'law', 'constitution', 'policy',
+                'BJP', 'congress', 'AAP', 'senate', 'democrat', 'republican',
+            ],
+            'sensitivity': 0.80,
+            'label': 'Politics / Governance',
+        },
+        'communal': {
+            'keywords': [
+                'hindu', 'muslim', 'christian', 'sikh', 'religious', 'temple',
+                'mosque', 'church', 'communal', 'caste', 'ethnic', 'racial',
+                'minority', 'majority', 'secular', 'jihad', 'conversion',
+                'interfaith', 'sectarian', 'bigotry',
+            ],
+            'sensitivity': 0.95,
+            'label': 'Communal / Religious',
+        },
+        'financial': {
+            'keywords': [
+                'stock', 'market', 'crash', 'bank', 'scam', 'fraud', 'ponzi',
+                'investment', 'crypto', 'bitcoin', 'economy', 'recession',
+                'inflation', 'bankruptcy', 'demonetization',
+            ],
+            'sensitivity': 0.75,
+            'label': 'Financial / Economic',
+        },
+        'disaster': {
+            'keywords': [
+                'earthquake', 'flood', 'tsunami', 'cyclone', 'hurricane',
+                'wildfire', 'drought', 'famine', 'volcano', 'landslide',
+                'storm', 'disaster', 'devastation', 'calamity',
+            ],
+            'sensitivity': 0.85,
+            'label': 'Natural Disaster',
+        },
+        'children': {
+            'keywords': [
+                'child', 'children', 'minor', 'minors', 'girl', 'girls',
+                'boy', 'boys', 'student', 'students', 'school', 'baby',
+                'infant', 'toddler', 'teenager', 'juvenile', 'underage',
+            ],
+            'sensitivity': 0.90,
+            'label': 'Children / Minors',
+        },
+    }
+
+    def classify(self, text: str) -> Dict:
+        text_lower = text.lower()
+        detected = []
+        max_sensitivity = 0.0
+
+        for topic_id, topic_info in self.TOPIC_MAP.items():
+            hits = sum(1 for kw in topic_info['keywords'] if kw in text_lower)
+            if hits > 0:
+                detected.append({
+                    'id': topic_id,
+                    'label': topic_info['label'],
+                    'sensitivity': topic_info['sensitivity'],
+                    'keyword_hits': hits,
+                })
+                max_sensitivity = max(max_sensitivity, topic_info['sensitivity'])
+
+        return {
+            'topics': detected,
+            'labels': [t['label'] for t in detected],
+            'max_sensitivity': max_sensitivity,
+            'is_sensitive': max_sensitivity >= 0.80,
+        }
+
+
+# ---------------------------------------------------------------------------
+# MASTER: Explainable AI Engine  (multi-signal fusion)
+# ---------------------------------------------------------------------------
 
 class ExplainableAI:
-    """Combine all AI components with explainability"""
-    
+    """
+    Fuses all 5 signals with proper weighting to produce a final verdict.
+
+    Signal weights:
+      Claim Plausibility  : 0.30  — Is the claim itself believable?
+      Linguistic Red Flags : 0.10  — Clickbait, sensationalism, emotion
+      Source Quality       : 0.20  — Are credible sources cited?
+      Fact-Check X-Ref     : 0.25  — Has this been fact-checked as false/true?
+      Topic Sensitivity    : 0.15  — How dangerous/sensitive is the topic?
+    """
+
+    SIGNAL_WEIGHTS = {
+        'plausibility':  0.30,
+        'linguistic':    0.10,
+        'source':        0.20,
+        'fact_check':    0.25,
+        'topic':         0.15,
+    }
+
     def __init__(self):
-        self.detector = MisinformationDetector()
-        self.risk_predictor = RiskPredictor()
-        try:
-            self.vader = SentimentIntensityAnalyzer()
-        except:
-            self.vader = None
-    
+        self.plausibility = ClaimPlausibilityAnalyzer()
+        self.linguistic = LinguisticAnalyzer()
+        self.source_quality = SourceQualityAnalyzer()
+        self.fact_checker = FactCheckCrossReferencer()
+        self.topic_classifier = TopicSensitivityClassifier()
+
     def analyze_content(self, title: str, text: str, url: str = '',
                         source_credibility: float = 5.0,
-                        topics: List[str] = None) -> Dict:
+                        topics: List[str] = None,
+                        fact_check_results: List[Dict] = None) -> Dict:
         """
-        Complete explainable AI analysis
-        
-        Args:
-            title: Content title
-            text: Content body
-            url: Content URL
-            source_credibility: Source credibility score (0-10)
-            topics: List of topics/categories
-            
-        Returns:
-            Complete analysis results with explanations
+        Complete explainable AI analysis with multi-signal fusion.
         """
-        if topics is None:
-            topics = self._extract_topics(f"{title} {text}")
-        
-        # 1. Misinformation Detection
-        detection_results = self.detector.analyze(title, text, source_credibility)
-        
-        # 2. Sentiment Analysis
-        sentiment_score = 0.0
+        full_text = f"{title} {text}"
+
+        # ---- Run all 5 signal analyzers ----
+        plaus = self.plausibility.analyze(title, text)
+        ling = self.linguistic.analyze(title, text)
+        source = self.source_quality.analyze(text)
+        fc = self.fact_checker.analyze(fact_check_results or [])
+        topic_info = self.topic_classifier.classify(full_text)
+
+        # ---- Collect all indicators ----
+        all_indicators = (
+            plaus['indicators'] +
+            ling['indicators'] +
+            source['indicators'] +
+            fc['indicators']
+        )
+
+        # ---- Multi-signal fusion ----
+        raw_scores = {
+            'plausibility': plaus['score'],
+            'linguistic': ling['score'],
+            'source': source['score'],
+            'fact_check': fc['score'],
+            'topic': topic_info['max_sensitivity'],
+        }
+
+        # Weighted sum
+        weighted_sum = sum(raw_scores[k] * self.SIGNAL_WEIGHTS[k] for k in self.SIGNAL_WEIGHTS)
+
+        # BOOST: if plausibility flags are high AND sources are weak → compound
+        if plaus['score'] >= 0.4 and source['score'] >= 0.45:
+            weighted_sum = min(1.0, weighted_sum * 1.35)
+
+        # BOOST: sensitive topic + any plausibility concern → amplify
+        if topic_info['is_sensitive'] and plaus['score'] >= 0.3:
+            weighted_sum = min(1.0, weighted_sum * 1.25)
+
+        # BOOST: fact-checked as false → ensure minimum score of 0.80
+        if fc.get('false_count', 0) > 0:
+            weighted_sum = max(weighted_sum, 0.80)
+
+        # PENALTY: low source credibility
+        source_penalty = max(0, (5.0 - source_credibility) / 10.0) * 0.12
+        weighted_sum = min(1.0, weighted_sum + source_penalty)
+
+        # FLOOR: if we have extraordinary claims + no credible sources → minimum 0.55
+        if plaus['score'] >= 0.35 and source['score'] >= 0.50:
+            weighted_sum = max(weighted_sum, 0.55)
+
+        misinformation_likelihood = round(min(1.0, weighted_sum), 4)
+        credibility_score = round(1.0 - misinformation_likelihood, 4)
+
+        # ---- Sentiment ----
+        sentiment_compound = ling.get('sentiment_compound', 0.0)
         emotional_triggers = []
-        if self.vader:
-            full_text = f"{title} {text}"
-            sentiment = self.vader.polarity_scores(full_text)
-            sentiment_score = sentiment['compound']
-            
-            # Identify emotional triggers
-            if sentiment['neg'] > 0.3:
-                emotional_triggers.append('negative')
-            if sentiment['pos'] > 0.3:
-                emotional_triggers.append('positive')
-            if abs(sentiment_score) > 0.5:
-                emotional_triggers.append('strong_emotion')
-        
-        # 3. Amplification Risk Prediction
-        amplification_results = self.risk_predictor.predict_amplification_risk(
-            {'title': title, 'text': text},
-            detection_results['misinformation_likelihood'],
-            sentiment_score
+        if sentiment_compound < -0.3:
+            emotional_triggers.append('negative')
+        if sentiment_compound > 0.3:
+            emotional_triggers.append('positive')
+        if abs(sentiment_compound) > 0.5:
+            emotional_triggers.append('strong_emotion')
+
+        # ---- Amplification Risk ----
+        amp = self._predict_amplification(
+            misinformation_likelihood, sentiment_compound,
+            topic_info, plaus['score']
         )
-        
-        # 4. Societal Impact Assessment
-        impact_results = self.risk_predictor.assess_societal_impact(
-            {'title': title, 'text': text},
-            detection_results['misinformation_likelihood'],
-            amplification_results['amplification_risk'],
-            topics
+
+        # ---- Societal Impact ----
+        impact = self._assess_impact(
+            misinformation_likelihood, amp['amplification_risk'],
+            topic_info
         )
-        
-        # Combine all results
-        complete_analysis = {
-            # Detection
-            'misinformation_likelihood': detection_results['misinformation_likelihood'],
-            'credibility_score': detection_results['credibility_score'],
-            'bias_score': detection_results['bias_score'],
-            
-            # Prediction
-            'amplification_risk': amplification_results['amplification_risk'],
-            'estimated_reach': amplification_results['estimated_reach'],
-            'velocity_score': amplification_results['velocity_score'],
-            
-            # Impact
-            'societal_impact_score': impact_results['societal_impact_score'],
-            'risk_level': impact_results['risk_level'],
-            'affected_topics': impact_results['affected_topics'],
-            
-            # Sentiment & Emotion
-            'sentiment_score': sentiment_score,
+
+        # ---- Confidence ----
+        indicator_count = len(all_indicators)
+        confidence = min(0.95, 0.40 + indicator_count * 0.06 +
+                         (0.12 if fc.get('has_results') else 0))
+
+        # ---- Explanation ----
+        explanation = self._build_explanation(
+            misinformation_likelihood, raw_scores, all_indicators,
+            amp, impact, topic_info
+        )
+
+        # ---- Bias score ----
+        bias_score = abs(sentiment_compound)
+
+        return {
+            'misinformation_likelihood': misinformation_likelihood,
+            'credibility_score': credibility_score,
+            'bias_score': round(bias_score, 4),
+
+            'amplification_risk': amp['amplification_risk'],
+            'estimated_reach': amp['estimated_reach'],
+            'velocity_score': amp['velocity_score'],
+
+            'societal_impact_score': impact['score'],
+            'risk_level': impact['level'],
+            'affected_topics': topic_info['labels'] or ['general'],
+
+            'sentiment_score': sentiment_compound,
             'emotional_triggers': emotional_triggers,
-            
-            # Explainability
-            'explanation': self._generate_complete_explanation(
-                detection_results, amplification_results, impact_results
-            ),
-            'confidence_score': detection_results['confidence'],
-            'key_indicators': detection_results['key_indicators'],
-            
-            # Fact-checking placeholder (will be filled by API integrations)
-            'fact_check_results': [],
-            'verified_claims': {}
+
+            'explanation': explanation,
+            'confidence_score': round(confidence, 4),
+            'key_indicators': all_indicators,
+
+            'fact_check_results': fact_check_results or [],
+            'verified_claims': {},
         }
-        
-        return complete_analysis
-    
-    def _extract_topics(self, text: str) -> List[str]:
-        """Extract topics from text (simplified)"""
-        # In production, use proper topic modeling or NER
-        topics_keywords = {
-            'health': ['health', 'medical', 'vaccine', 'disease', 'doctor', 'hospital'],
-            'politics': ['election', 'government', 'president', 'congress', 'political'],
-            'economy': ['economy', 'financial', 'market', 'stock', 'business'],
-            'technology': ['technology', 'ai', 'software', 'computer', 'digital'],
-            'science': ['science', 'research', 'study', 'scientific'],
-            'social': ['social', 'community', 'society', 'cultural']
+
+    # --- Amplification predictor ---
+
+    def _predict_amplification(self, misinfo_score: float, sentiment: float,
+                                topic_info: Dict, plausibility_score: float) -> Dict:
+        emotional_factor = abs(sentiment) * 0.20
+        misinfo_factor = misinfo_score * 0.30
+        topic_factor = topic_info['max_sensitivity'] * 0.30
+        plaus_factor = plausibility_score * 0.20
+
+        risk = min(1.0, emotional_factor + misinfo_factor + topic_factor + plaus_factor)
+
+        # Sensitive topics + misinformation = viral amplification
+        if topic_info['is_sensitive'] and misinfo_score > 0.4:
+            risk = min(1.0, risk * 1.4)
+
+        if risk >= 0.75:
+            reach = 500_000
+        elif risk >= 0.55:
+            reach = 100_000
+        elif risk >= 0.35:
+            reach = 25_000
+        else:
+            reach = 5_000
+
+        velocity = round(risk * 0.85, 4)
+
+        if risk > 0.7:
+            expl = "VERY HIGH risk of rapid viral spread. Content touches sensitive topics and has characteristics that drive mass sharing on social media and messaging apps."
+        elif risk > 0.5:
+            expl = "HIGH amplification risk. Likely to spread significantly in communities and social platforms."
+        elif risk > 0.3:
+            expl = "MODERATE amplification risk. May gain some traction but unlikely to go massively viral."
+        else:
+            expl = "LOW amplification risk. Limited organic spread expected."
+
+        return {
+            'amplification_risk': round(risk, 4),
+            'estimated_reach': reach,
+            'velocity_score': velocity,
+            'explanation': expl,
         }
-        
-        text_lower = text.lower()
-        detected_topics = []
-        
-        for topic, keywords in topics_keywords.items():
-            if any(keyword in text_lower for keyword in keywords):
-                detected_topics.append(topic)
-        
-        return detected_topics if detected_topics else ['general']
-    
-    def _generate_complete_explanation(self, detection: Dict, 
-                                       amplification: Dict, impact: Dict) -> str:
-        """Generate comprehensive explanation"""
-        parts = [
-            f"DETECTION: {detection['explanation']}",
-            f"AMPLIFICATION: {amplification['explanation']}",
-            f"IMPACT: {impact['explanation']}"
-        ]
-        
+
+    # --- Impact assessor ---
+
+    def _assess_impact(self, misinfo_score: float, amp_risk: float,
+                        topic_info: Dict) -> Dict:
+
+        topic_weight = topic_info['max_sensitivity']
+
+        raw = (misinfo_score * 0.40 + amp_risk * 0.30 + topic_weight * 0.30) * 10
+        score = round(min(10.0, raw), 2)
+
+        if score >= 7.5:
+            level = 'critical'
+        elif score >= 5.0:
+            level = 'high'
+        elif score >= 2.5:
+            level = 'medium'
+        else:
+            level = 'low'
+
+        return {'score': score, 'level': level}
+
+    # --- Explanation builder ---
+
+    def _build_explanation(self, likelihood: float, signals: Dict,
+                           indicators: List[Dict], amp: Dict, impact: Dict,
+                           topic_info: Dict) -> str:
+        parts = []
+
+        # Overall verdict
+        pct = likelihood * 100
+        if likelihood >= 0.7:
+            parts.append(f"⚠️ HIGH RISK — {pct:.0f}% misinformation likelihood.")
+        elif likelihood >= 0.4:
+            parts.append(f"⚡ MODERATE RISK — {pct:.0f}% misinformation likelihood.")
+        else:
+            parts.append(f"✅ LOW RISK — {pct:.0f}% misinformation likelihood.")
+
+        # Top concerns (sorted by score)
+        top = sorted(indicators, key=lambda x: x.get('score', 0), reverse=True)[:4]
+        if top:
+            parts.append("KEY CONCERNS: " + " • ".join(i['description'] for i in top))
+
+        # Topics
+        if topic_info['labels']:
+            parts.append(f"SENSITIVE TOPICS: {', '.join(topic_info['labels'])}.")
+
+        # Amplification
+        parts.append(f"SPREAD: {amp['explanation']}")
+
+        # Impact
+        parts.append(f"SOCIETAL IMPACT: {impact['score']}/10 ({impact['level'].upper()}).")
+
         return " | ".join(parts)
