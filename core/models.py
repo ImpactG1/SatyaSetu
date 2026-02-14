@@ -31,9 +31,17 @@ class Source(models.Model):
 
 class Content(models.Model):
     """Content item being analyzed"""
+    CONTENT_TYPES = [
+        ('article', 'News Article'),
+        ('claim', 'Claim / Statement'),
+        ('social', 'Social Media Post'),
+        ('other', 'Other'),
+    ]
+    
     title = models.CharField(max_length=500)
     text = models.TextField()
     url = models.URLField(max_length=1000, blank=True, null=True)
+    content_type = models.CharField(max_length=20, choices=CONTENT_TYPES, default='article')
     author = models.CharField(max_length=255, blank=True, null=True)
     published_date = models.DateTimeField(null=True, blank=True)
     source = models.ForeignKey(Source, on_delete=models.CASCADE, related_name='contents')
