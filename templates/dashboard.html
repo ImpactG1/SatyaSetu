@@ -20,50 +20,117 @@
     .section-divider { height: 1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent); }
 
     /* ── Verification Flowchart ── */
-    .fc-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; position: relative; }
-    @media (max-width: 768px) { .fc-grid { grid-template-columns: 1fr; } }
-    .fc-card {
-        border: 1.5px dashed rgba(255,255,255,0.12);
-        border-radius: 12px;
-        padding: 16px;
+    .fc-container {
+        margin-top: 16px;
+        border: 1px solid rgba(99,102,241,0.15);
+        border-radius: 16px;
+        padding: 24px;
+        background: rgba(99,102,241,0.03);
         position: relative;
+        overflow: hidden;
+    }
+    .fc-container::before {
+        content: '';
+        position: absolute; inset: 0;
+        background: radial-gradient(ellipse at 50% 0%, rgba(99,102,241,0.06) 0%, transparent 65%);
+        pointer-events: none;
+    }
+    .fc-header {
+        display: flex; align-items: center; gap: 10px; margin-bottom: 20px;
+        position: relative; z-index: 1;
+    }
+    .fc-header-icon {
+        width: 34px; height: 34px; border-radius: 10px;
+        background: rgba(99,102,241,0.12);
+        display: flex; align-items: center; justify-content: center;
+        color: #818cf8; font-size: 15px;
+    }
+    .fc-flow {
+        position: relative; z-index: 1;
+    }
+    /* Each step row */
+    .fc-step {
+        display: flex; align-items: stretch; gap: 0; position: relative;
+    }
+    /* Timeline spine */
+    .fc-timeline {
+        width: 36px; display: flex; flex-direction: column; align-items: center; flex-shrink: 0; position: relative;
+    }
+    .fc-node {
+        width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgba(99,102,241,0.35);
+        background: rgba(2,6,23,0.9); position: relative; z-index: 2; flex-shrink: 0;
+        transform: scale(0); transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1), border-color 0.4s, box-shadow 0.4s;
+    }
+    .fc-node.active { transform: scale(1); border-color: #818cf8; box-shadow: 0 0 12px rgba(99,102,241,0.35); }
+    .fc-node.done { background: #6366f1; border-color: #818cf8; }
+    .fc-node-inner { width: 6px; height: 6px; border-radius: 50%; background: #818cf8; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); opacity: 0; transition: opacity 0.3s 0.15s; }
+    .fc-node.done .fc-node-inner { opacity: 1; }
+    /* Animated connector line between nodes */
+    .fc-connector {
+        width: 2px; flex: 1; min-height: 20px; position: relative; overflow: hidden;
+    }
+    .fc-connector-track { width: 100%; height: 100%; background: rgba(255,255,255,0.06); }
+    .fc-connector-fill {
+        position: absolute; top: 0; left: 0; width: 100%; height: 0%;
+        background: linear-gradient(180deg, #6366f1, #818cf8);
+        transition: height 0.6s cubic-bezier(0.16,1,0.3,1);
+        border-radius: 1px;
+    }
+    .fc-connector-fill.live { height: 100%; }
+    /* Traveling dot */
+    .fc-connector-fill::after {
+        content: '';
+        position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+        width: 6px; height: 6px; border-radius: 50%;
+        background: #a5b4fc; box-shadow: 0 0 8px rgba(99,102,241,0.6);
+        opacity: 0;
+    }
+    .fc-connector-fill.live::after {
+        animation: travelDown 0.8s ease-out 0.1s forwards;
+    }
+    @keyframes travelDown {
+        0% { opacity:1; bottom: 100%; }
+        80% { opacity:1; }
+        100% { opacity:0; bottom: -4px; }
+    }
+    /* Card */
+    .fc-card {
+        flex: 1; min-width: 0;
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 12px;
+        padding: 14px 16px;
         background: rgba(255,255,255,0.02);
         opacity: 0;
-        transform: translateY(20px) scale(0.95);
-        transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        transform: translateX(-16px);
+        transition: all 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+        margin: 4px 0;
     }
     .fc-card.visible {
         opacity: 1;
-        transform: translateY(0) scale(1);
+        transform: translateX(0);
     }
     .fc-card:hover {
-        border-color: rgba(255,255,255,0.25);
+        border-color: rgba(99,102,241,0.2);
         background: rgba(255,255,255,0.04);
     }
-    .fc-card .fc-dot {
-        width: 8px; height: 8px;
-        border-radius: 50%;
-        background: rgba(255,255,255,0.15);
-        position: absolute;
+    /* Horizontal arrow from timeline to card */
+    .fc-arm {
+        width: 20px; display: flex; align-items: center; position: relative;
     }
-    .fc-card .fc-dot-b { bottom: -5px; left: 50%; transform: translateX(-50%); }
-    .fc-card .fc-dot-r { right: -5px; top: 50%; transform: translateY(-50%); }
-    .fc-card.visible .fc-dot { background: rgba(255,255,255,0.35); }
-    /* Arrow indicators for flow direction */
-    .fc-arrow-down {
-        position: absolute; bottom: -16px; left: 50%; transform: translateX(-50%);
+    .fc-arm-line {
+        width: 0; height: 2px; background: linear-gradient(90deg, #6366f1, #818cf8);
+        transition: width 0.35s cubic-bezier(0.16,1,0.3,1); border-radius: 1px;
+    }
+    .fc-arm-line.live { width: 100%; }
+    .fc-arm-arrow {
+        position: absolute; right: -1px; top: 50%; transform: translateY(-50%);
         width: 0; height: 0;
-        border-left: 5px solid transparent; border-right: 5px solid transparent;
-        border-top: 6px solid rgba(255,255,255,0.25);
+        border-top: 4px solid transparent; border-bottom: 4px solid transparent;
+        border-left: 5px solid #818cf8;
+        opacity: 0; transition: opacity 0.2s ease 0.3s;
     }
-    .fc-arrow-right {
-        position: absolute; right: -16px; top: 50%; transform: translateY(-50%);
-        width: 0; height: 0;
-        border-top: 5px solid transparent; border-bottom: 5px solid transparent;
-        border-left: 6px solid rgba(255,255,255,0.25);
-    }
-    .fc-card.visible .fc-arrow-down { border-top-color: rgba(99,102,241,0.5); }
-    .fc-card.visible .fc-arrow-right { border-left-color: rgba(99,102,241,0.5); }
+    .fc-arm-arrow.live { opacity: 1; }
+    /* Status badges */
     .fc-status {
         width: 22px; height: 22px;
         border-radius: 6px;
@@ -77,52 +144,25 @@
     .fc-status-warn { background: rgba(245,158,11,0.15); color: #fbbf24; }
     .fc-status-err { background: rgba(239,68,68,0.15); color: #f87171; }
     .fc-status-info { background: rgba(99,102,241,0.15); color: #818cf8; }
-    .fc-link-row {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        padding: 4px 0;
-        position: relative;
-    }
-    .fc-vline {
-        width: 1.5px;
-        height: 28px;
-        background: repeating-linear-gradient(180deg, rgba(255,255,255,0.15) 0px, rgba(255,255,255,0.15) 4px, transparent 4px, transparent 8px);
-        position: relative;
-    }
-    .fc-vline .fc-dot-mid {
-        width: 6px; height: 6px;
-        border-radius: 50%;
-        background: rgba(255,255,255,0.25);
-        position: absolute;
-        top: 50%; left: 50%;
-        transform: translate(-50%, -50%);
-    }
-    .fc-hline {
-        height: 1.5px;
-        flex: 1;
-        background: repeating-linear-gradient(90deg, rgba(255,255,255,0.12) 0px, rgba(255,255,255,0.12) 4px, transparent 4px, transparent 8px);
-    }
-    .fc-link-row.visible .fc-vline,
-    .fc-link-row.visible .fc-hline {
-        animation: dashAppear 0.4s ease forwards;
-    }
-    @keyframes dashAppear {
-        from { opacity: 0; } to { opacity: 1; }
-    }
-    .fc-verdict-card {
-        border: 1.5px dashed rgba(255,255,255,0.12);
+    /* Verdict card */
+    .fc-verdict {
+        border: 1px solid rgba(255,255,255,0.08);
         border-radius: 12px;
-        padding: 20px;
-        position: relative;
+        padding: 16px 18px;
         background: rgba(255,255,255,0.02);
         opacity: 0;
-        transform: translateY(20px);
+        transform: translateY(14px);
         transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        position: relative;
     }
-    .fc-verdict-card.visible {
-        opacity: 1;
-        transform: translateY(0);
+    .fc-verdict.visible { opacity: 1; transform: translateY(0); }
+    .fc-verdict::before {
+        content: '';
+        position: absolute; inset: -1px; border-radius: inherit; padding: 1px;
+        background: linear-gradient(135deg, rgba(99,102,241,0.25), transparent 60%);
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor; mask-composite: exclude;
+        pointer-events: none;
     }
     .fc-src-link {
         color: #818cf8;
@@ -134,6 +174,13 @@
         transition: color 0.2s;
     }
     .fc-src-link:hover { color: #a5b4fc; }
+    /* Step number  */
+    .fc-step-num {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 18px; height: 18px; border-radius: 5px;
+        background: rgba(99,102,241,0.1); color: #818cf8;
+        font-size: 10px; font-weight: 700; flex-shrink: 0;
+    }
 
     /* ── Forecast Feature ── */
     .forecast-container {
@@ -1339,7 +1386,6 @@ function showVerificationFlowchart(btn) {
     const pct = (ml * 100).toFixed(1);
     const risk = r.risk_level || 'low';
     const conf = ((r.confidence || 0) * 100).toFixed(0);
-    const topics = (r.affected_topics || []).join(', ') || 'General';
     const srcNames = ws.source_names || [];
     const srcDetail = ws.sources_detail || [];
     const consensus = ws.consensus || 'insufficient';
@@ -1348,127 +1394,135 @@ function showVerificationFlowchart(btn) {
     const expl = r.explanation || '';
 
     // Status helpers
-    const ok = '<span class="fc-status fc-status-ok">✓</span>';
-    const warn = '<span class="fc-status fc-status-warn">⚠</span>';
-    const err = '<span class="fc-status fc-status-err">✗</span>';
-    const info = '<span class="fc-status fc-status-info">i</span>';
+    var ok = '<span class="fc-status fc-status-ok">✓</span>';
+    var warn = '<span class="fc-status fc-status-warn">⚠</span>';
+    var err = '<span class="fc-status fc-status-err">✗</span>';
+    var info = '<span class="fc-status fc-status-info">i</span>';
 
-    // Determine statuses
-    const webStatus = webTotal > 0 ? ok : warn;
-    const fcStatus = fcCount > 0 ? ok : warn;
-    const aiStatus = conf > 50 ? ok : info;
-    const riskIcon = risk === 'critical' || risk === 'high' ? err : risk === 'medium' ? warn : ok;
-    const consensusStatus = consensus === 'mostly_denied' ? err : consensus === 'mostly_supported' ? ok : consensus === 'conflicting' ? warn : info;
+    var webStatus = webTotal > 0 ? ok : warn;
+    var fcStatus = fcCount > 0 ? ok : warn;
+    var aiStatus = conf > 50 ? ok : info;
+    var riskIcon = risk === 'critical' || risk === 'high' ? err : risk === 'medium' ? warn : ok;
+    var consensusStatus = consensus === 'mostly_denied' ? err : consensus === 'mostly_supported' ? ok : consensus === 'conflicting' ? warn : info;
 
-    // Truncated source links
     function srcLink(s) {
-        const name = (s.name || s.source_name || 'Source').substring(0, 22);
-        const url = s.url || '#';
+        var name = (s.name || s.source_name || 'Source').substring(0, 22);
+        var url = s.url || '#';
         return '<a href="' + url + '" target="_blank" class="fc-src-link"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>' + name + '</a>';
     }
 
-    // Build cards — flow direction: right → and down ↓
-    // dots: 'r' = arrow right, 'd' = arrow down, 'rd' = both
-    function card(title, statusHtml, body, dots, delay) {
-        const d = dots || '';
-        let dotHtml = '';
-        if (d.includes('r')) dotHtml += '<div class="fc-dot fc-dot-r"></div><div class="fc-arrow-right"></div>';
-        if (d.includes('d')) dotHtml += '<div class="fc-dot fc-dot-b"></div><div class="fc-arrow-down"></div>';
-        return '<div class="fc-card" data-delay="' + (delay||0) + '">' + dotHtml +
-            '<div class="flex items-start justify-between gap-2 mb-2">' +
-                '<h4 class="text-xs font-bold text-white leading-tight">' + title + '</h4>' +
-                statusHtml +
-            '</div>' +
-            '<div class="text-xs text-dark-400 leading-relaxed">' + body + '</div>' +
-        '</div>';
-    }
+    // Build steps
+    var steps = [];
 
-    // Connector row
-    function connRow(delay, type) {
-        if (type === 'horizontal') {
-            return '<div class="fc-link-row" data-delay="' + delay + '" style="grid-column:1/-1;"><div class="fc-hline"></div><div class="fc-vline" style="height:0;width:0;"></div><div class="fc-hline"></div></div>';
-        }
-        return '<div class="fc-link-row" data-delay="' + delay + '" style="grid-column:1/-1;justify-content:center;"><div class="fc-vline"><div class="fc-dot-mid"></div></div></div>';
-    }
+    // Step 1 — Input
+    steps.push({
+        num: 1, title: 'Input Received', status: ok,
+        body: '<span class="text-white">' + (r.title || 'Content analyzed').substring(0, 50) + (((r.title||'').length > 50) ? '…' : '') + '</span>'
+    });
 
-    let h = '';
+    // Step 2 — Web Search
+    var webBody = webTotal > 0
+        ? 'Scraped & analyzed <span class="text-white font-medium">' + webTotal + '</span> web results' +
+          (srcDetail.length > 0 ? '<div class="mt-1.5 space-y-0.5">' + srcDetail.slice(0,2).map(srcLink).join('') + '</div>' : '')
+        : 'No web sources found for verification';
+    steps.push({ num: 2, title: 'Web Search & Scraping', status: webStatus, body: webBody });
 
-    // ═══ ROW 1: Input → Web Sources → Fact Check ═══
-    h += '<div class="fc-grid" style="gap:12px;">';
+    // Step 3 — Fact Check
+    steps.push({
+        num: 3, title: 'Fact-Check Database', status: fcStatus,
+        body: fcCount > 0
+            ? '<span class="text-white font-medium">' + fcCount + '</span> existing fact-check' + (fcCount > 1 ? 's' : '') + ' found'
+            : 'No existing fact-checks found'
+    });
 
-    // Card 1: Input Received → arrow right
-    h += card('Input Received', ok,
-        '<span class="text-white">' + (r.title || 'Content analyzed').substring(0, 45) + (((r.title||'').length > 45) ? '...' : '') + '</span>',
-        'r', 0);
-
-    // Card 2: Web Scraping → arrow right
-    h += card('Search Verification', webStatus,
-        (webTotal > 0
-            ? 'Analyzed ' + webTotal + ' search results' +
-              (srcDetail.length > 0 ? '<div class="mt-1.5 space-y-0.5">' + srcDetail.slice(0,2).map(function(s){ return srcLink(s); }).join('') + '</div>' : '')
-            : 'No web sources found'),
-        'r', 150);
-
-    // Card 3: Fact Check → arrow down (end of row, goes down to row 2)
-    h += card('Fact Check Database', fcStatus,
-        (fcCount > 0
-            ? fcCount + ' existing fact-check' + (fcCount > 1 ? 's' : '') + ' found'
-            : 'No existing fact-checks found'),
-        'd', 300);
-
-    // ═══ Connector row: single line from Fact Check down to URL Safety ═══
-    h += '<div class="fc-link-row" data-delay="400" style="grid-column:1/-1;">';
-    h += '<div style="flex:1;"></div>';
-    h += '<div style="flex:1;"></div>';
-    h += '<div style="flex:1;display:flex;justify-content:center;"><div class="fc-vline"><div class="fc-dot-mid"></div></div></div>';
-    h += '</div>';
-
-    // ═══ ROW 2: Web Consensus ← AI Analysis ← URL Safety (reverse order: flow goes right-to-left) ═══
-    const consensusText = consensus === 'mostly_denied' ? 'Sources mostly deny this claim'
-        : consensus === 'mostly_supported' ? 'Sources mostly support this claim'
-        : consensus === 'conflicting' ? 'Sources show conflicting views'
+    // Step 4 — Consensus
+    var cText = consensus === 'mostly_denied' ? 'Sources <span class="text-rose-400 font-medium">mostly deny</span> this claim'
+        : consensus === 'mostly_supported' ? 'Sources <span class="text-emerald-400 font-medium">mostly support</span> this claim'
+        : consensus === 'conflicting' ? 'Sources show <span class="text-amber-400 font-medium">conflicting</span> views'
         : 'Insufficient data for consensus';
+    steps.push({
+        num: 4, title: 'Source Consensus', status: consensusStatus,
+        body: cText + (srcNames.length > 0 ? '<div class="mt-1 text-dark-500 text-[10px]">' + srcNames.slice(0,4).join(' · ') + '</div>' : '')
+    });
 
-    // Card 4: Web Consensus → arrow down (to verdict)
-    h += card('Web Consensus', consensusStatus,
-        consensusText + (srcNames.length > 0 ? '<div class="mt-1 text-dark-500">' + srcNames.slice(0,3).join(', ') + '</div>' : ''),
-        'd', 500);
+    // Step 5 — AI Analysis
+    var indicatorTypes = indicators.slice(0,3).map(function(i){ return i.type || ''; }).filter(Boolean);
+    var aiBody = 'Confidence: <span class="text-white font-medium">' + conf + '%</span> — ' +
+        (ml > 0.6 ? '<span class="text-rose-400">Likely False</span>' : ml > 0.3 ? '<span class="text-amber-400">Uncertain</span>' : '<span class="text-emerald-400">Likely True</span>');
+    if (indicatorTypes.length > 0) aiBody += '<div class="mt-1 text-dark-500 text-[10px]">' + indicatorTypes.join(', ') + '</div>';
+    steps.push({ num: 5, title: 'AI Deep Analysis', status: aiStatus, body: aiBody });
 
-    // Card 5: AI Analysis → arrow left (pointing to Web Consensus)
-    const indicatorTypes = indicators.slice(0,3).map(function(i){ return i.type || ''; }).filter(Boolean);
-    h += card('AI Analysis', aiStatus,
-        'Confidence: ' + conf + '% — ' + (ml > 0.6 ? 'Likely False' : ml > 0.3 ? 'Uncertain' : 'Likely True') +
-        (indicatorTypes.length > 0 ? '<div class="mt-1 text-dark-500">' + indicatorTypes.join(', ') + '</div>' : ''),
-        '', 650);
+    // Step 6 — URL Safety
+    var hasUrl = r.url || '';
+    steps.push({
+        num: 6, title: 'URL Safety Check', status: hasUrl ? ok : info,
+        body: hasUrl ? 'No security threats detected' : 'No URL provided for safety check'
+    });
 
-    // Card 6: URL Safety → arrow left (pointing to AI Analysis)
-    const hasUrl = r.url || '';
-    h += card('URL Safety Check', hasUrl ? ok : info,
-        hasUrl ? 'No security threats detected' : 'No URL provided for safety check',
-        '', 800);
-
-    // ═══ Connector row: single line from Web Consensus down to Verdict ═══
-    h += '<div class="fc-link-row" data-delay="900" style="grid-column:1/-1;">';
-    h += '<div style="flex:1;display:flex;justify-content:center;"><div class="fc-vline"><div class="fc-dot-mid"></div></div></div>';
-    h += '<div style="flex:1;"></div>';
-    h += '<div style="flex:1;"></div>';
+    // Build HTML
+    var h = '<div class="fc-container">';
+    // Header
+    h += '<div class="fc-header">';
+    h += '<div class="fc-header-icon"><svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/></svg></div>';
+    h += '<div>';
+    h += '<h3 class="text-sm font-bold text-white">Verification Pipeline</h3>';
+    h += '<p class="text-xs text-dark-400">How your content was verified, step by step</p>';
+    h += '</div>';
     h += '</div>';
 
-    h += '</div>'; // close fc-grid
+    // Flow
+    h += '<div class="fc-flow">';
+    steps.forEach(function(step, i) {
+        var isLast = (i === steps.length - 1);
+        h += '<div class="fc-step" data-step="' + i + '">';
+        // Timeline
+        h += '<div class="fc-timeline">';
+        h += '<div class="fc-node" data-idx="' + i + '"><div class="fc-node-inner"></div></div>';
+        if (!isLast) {
+            h += '<div class="fc-connector"><div class="fc-connector-track"></div><div class="fc-connector-fill" data-idx="' + i + '"></div></div>';
+        }
+        h += '</div>';
+        // Arm (horizontal arrow)
+        h += '<div class="fc-arm"><div class="fc-arm-line" data-idx="' + i + '"></div><div class="fc-arm-arrow" data-idx="' + i + '"></div></div>';
+        // Card
+        h += '<div class="fc-card" data-idx="' + i + '">';
+        h += '<div class="flex items-start justify-between gap-2 mb-1.5">';
+        h += '<div class="flex items-center gap-2 min-w-0">';
+        h += '<span class="fc-step-num">' + step.num + '</span>';
+        h += '<h4 class="text-xs font-bold text-white leading-tight">' + step.title + '</h4>';
+        h += '</div>';
+        h += step.status;
+        h += '</div>';
+        h += '<div class="text-xs text-dark-400 leading-relaxed">' + step.body + '</div>';
+        h += '</div>';
+        h += '</div>';
+    });
+    h += '</div>';
 
-    // ═══ VERDICT CARD ═══
-    const verdictColor = risk === 'critical' || risk === 'high' ? 'rose' : risk === 'medium' ? 'amber' : 'emerald';
-    const verdictText = expl.length > 280 ? expl.substring(0, 280) + '...' : expl;
+    // Verdict
+    var verdictColor = risk === 'critical' || risk === 'high' ? 'rose' : risk === 'medium' ? 'amber' : 'emerald';
+    var verdictBg = 'rgba(' + (verdictColor === 'rose' ? '239,68,68' : verdictColor === 'amber' ? '245,158,11' : '16,185,129') + ',0.05)';
+    var verdictBorder = 'rgba(' + (verdictColor === 'rose' ? '239,68,68' : verdictColor === 'amber' ? '245,158,11' : '16,185,129') + ',0.15)';
+    var verdictText = expl.length > 280 ? expl.substring(0, 280) + '…' : expl;
 
-    h += '<div class="max-w-md mt-0">';
-    h += '<div class="fc-verdict-card" data-delay="1000">';
-    h += '<div class="flex items-start justify-between gap-2 mb-2">';
+    h += '<div class="mt-5 ml-[36px] pl-[20px]">';
+    h += '<div class="fc-verdict" data-final style="background:' + verdictBg + ';border-color:' + verdictBorder + ';">';
+    h += '<div class="flex items-center justify-between gap-2 mb-2">';
+    h += '<div class="flex items-center gap-2">';
+    h += '<svg class="w-4 h-4 text-' + verdictColor + '-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>';
     h += '<h4 class="text-xs font-bold text-white">Final Verdict</h4>';
+    h += '</div>';
     h += riskIcon;
     h += '</div>';
     h += '<p class="text-xs text-dark-300 leading-relaxed mb-3">' + verdictText + '</p>';
 
-    // Source links in verdict
+    // Scores mini row
+    h += '<div class="flex gap-3 flex-wrap mb-3">';
+    h += '<div class="text-[10px] text-dark-500">Misinfo: <span class="text-white font-medium">' + pct + '%</span></div>';
+    h += '<div class="text-[10px] text-dark-500">Confidence: <span class="text-white font-medium">' + conf + '%</span></div>';
+    h += '<div class="text-[10px] text-dark-500">Risk: <span class="text-' + verdictColor + '-400 font-medium">' + risk.toUpperCase() + '</span></div>';
+    h += '</div>';
+
     if (srcDetail.length > 0) {
         h += '<div class="space-y-0.5 pt-2 border-t border-white/5">';
         srcDetail.slice(0, 3).forEach(function(s) { h += srcLink(s); });
@@ -1476,15 +1530,48 @@ function showVerificationFlowchart(btn) {
     }
     h += '</div></div>';
 
+    h += '</div>'; // close fc-container
     container.innerHTML = h;
 
-    // Animate
+    // Sequentially animate: node → connector → arm → card for each step
+    var STEP_DELAY = 350; // ms between starting each step
+    var totalSteps = steps.length;
+
+    function animateStep(i) {
+        if (i >= totalSteps) {
+            // Animate verdict
+            setTimeout(function() {
+                var v = container.querySelector('[data-final]');
+                if (v) v.classList.add('visible');
+            }, 200);
+            return;
+        }
+        // 1. Node appears
+        var node = container.querySelector('.fc-node[data-idx="' + i + '"]');
+        if (node) { node.classList.add('active'); setTimeout(function() { node.classList.add('done'); }, 200); }
+        // 2. Arm line extends
+        setTimeout(function() {
+            var arm = container.querySelector('.fc-arm-line[data-idx="' + i + '"]');
+            if (arm) arm.classList.add('live');
+            var arrow = container.querySelector('.fc-arm-arrow[data-idx="' + i + '"]');
+            if (arrow) arrow.classList.add('live');
+        }, 120);
+        // 3. Card fades in
+        setTimeout(function() {
+            var card = container.querySelector('.fc-card[data-idx="' + i + '"]');
+            if (card) card.classList.add('visible');
+        }, 240);
+        // 4. Connector line fills down to next step
+        setTimeout(function() {
+            var fill = container.querySelector('.fc-connector-fill[data-idx="' + i + '"]');
+            if (fill) fill.classList.add('live');
+        }, 350);
+        // Schedule next step
+        setTimeout(function() { animateStep(i + 1); }, STEP_DELAY);
+    }
+
     requestAnimationFrame(function() {
-        const els = container.querySelectorAll('.fc-card, .fc-link-row, .fc-verdict-card');
-        els.forEach(function(el) {
-            const d = parseInt(el.getAttribute('data-delay') || '0', 10);
-            setTimeout(function() { el.classList.add('visible'); }, d);
-        });
+        setTimeout(function() { animateStep(0); }, 150);
     });
 
     setTimeout(function() {
