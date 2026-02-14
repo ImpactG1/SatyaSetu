@@ -31,6 +31,8 @@ except ImportError:
 
 import numpy as np
 
+from .groq_service import GroqReasoningService
+
 logger = logging.getLogger(__name__)
 
 
@@ -619,6 +621,7 @@ class ExplainableAI:
         self.source_quality = SourceQualityAnalyzer()
         self.fact_checker = FactCheckCrossReferencer()
         self.topic_classifier = TopicSensitivityClassifier()
+        self.groq = GroqReasoningService()
 
     def analyze_content(self, title: str, text: str, url: str = '',
                         source_credibility: float = 5.0,
@@ -706,11 +709,33 @@ class ExplainableAI:
         confidence = min(0.95, 0.40 + indicator_count * 0.06 +
                          (0.12 if fc.get('has_results') else 0))
 
-        # ---- Explanation ----
-        explanation = self._build_explanation(
+        # ---- Explanation (Groq LLM if available, else fallback) ----
+        groq_explanation = None
+        source_attribution = None
+        if self.groq.is_available:
+            try:
+                groq_explanation = self.groq.generate_deep_reasoning(
+                    title=title, text=text,
+                    signal_scores=raw_scores,
+                    key_indicators=all_indicators,
+                    fact_check_results=fact_check_results or [],
+                    topic_info={'labels': topic_info['labels']},
+                    misinformation_likelihood=misinformation_likelihood,
+                    risk_level=impact['level'],
+                )
+                source_attribution = self.groq.generate_source_attribution(
+                    title=title, text=text,
+                    fact_check_results=fact_check_results or [],
+                )
+            except Exception as e:
+                logger.error(f"Groq reasoning failed, using fallback: {e}")
+
+        # Fallback explanation if Groq unavailable
+        fallback_explanation = self._build_explanation(
             misinformation_likelihood, raw_scores, all_indicators,
             amp, impact, topic_info
         )
+        explanation = groq_explanation or fallback_explanation
 
         # ---- Bias score ----
         bias_score = abs(sentiment_compound)
@@ -737,6 +762,8 @@ class ExplainableAI:
 
             'fact_check_results': fact_check_results or [],
             'verified_claims': {},
+            'source_attribution': source_attribution or '',
+            'signal_scores': raw_scores,
         }
 
     # --- Amplification predictor ---

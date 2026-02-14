@@ -12,4 +12,6 @@ urlpatterns = [
     path('api/fetch-news/', views.fetch_news_api, name='fetch_news'),
     path('api/alerts/', views.get_alerts_api, name='get_alerts'),
     path('api/stats/', views.get_stats_api, name='get_stats'),
+    path('api/analysis/<int:analysis_id>/', views.get_analysis_detail_api, name='analysis_detail'),
+    path('api/alert/<int:alert_id>/', views.get_alert_detail_api, name='alert_detail'),
 ]

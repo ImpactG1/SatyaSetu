@@ -92,6 +92,7 @@ USE_TZ = True
 # API Keys for External Services
 GOOGLE_FACT_CHECK_API_KEY = os.getenv('GOOGLE_FACT_CHECK_API_KEY')
 NEWS_API_KEY = os.getenv('NEWS_API_KEY')
+GROQ_API_KEY = os.getenv('GROQ_API_KEY')
 
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']

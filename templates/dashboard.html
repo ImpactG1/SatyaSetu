@@ -1,6 +1,26 @@
 {% extends 'base.html' %}
 {% block title %}Dashboard - SatyaSetu{% endblock %}
 
+{% block extra_head %}
+<style>
+    .modal-backdrop { background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); }
+    .modal-enter { animation: modalIn 0.3s ease-out forwards; }
+    @keyframes modalIn { from { opacity:0; transform:scale(0.95) translateY(20px); } to { opacity:1; transform:scale(1) translateY(0); } }
+    .tab-active { border-bottom: 2px solid #6366f1; color: #fff; }
+    .tab-inactive { border-bottom: 2px solid transparent; color: #64748b; }
+    .tab-inactive:hover { color: #94a3b8; }
+    .signal-bar { transition: width 0.8s cubic-bezier(0.4,0,0.2,1); }
+    .gauge-fill { transition: stroke-dashoffset 1s ease-out; }
+    .row-clickable { cursor: pointer; transition: all 0.2s; }
+    .row-clickable:hover { background: rgba(255,255,255,0.08) !important; }
+    .alert-clickable { cursor: pointer; transition: all 0.2s; }
+    .alert-clickable:hover { transform: translateX(4px); }
+    .indicator-pill { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 9999px; font-size: 0.7rem; font-weight: 500; }
+    .score-ring { filter: drop-shadow(0 0 6px currentColor); }
+    .section-divider { height: 1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent); }
+</style>
+{% endblock %}
+
 {% block content %}
 <!-- Dashboard Navigation -->
 <nav class="fixed top-0 left-0 right-0 z-50 glass bg-dark-950/90 backdrop-blur-xl border-b border-white/5">
@@ -17,23 +37,16 @@
                 </div>
                 <span class="text-lg font-bold"><span class="gradient-text">SatyaSetu</span></span>
             </a>
-
             <div class="flex items-center gap-4">
-                <!-- User Info -->
                 <div class="flex items-center gap-3">
                     {% if user_avatar %}
                     <img src="{{ user_avatar }}" alt="Avatar" class="w-8 h-8 rounded-full ring-2 ring-indigo-500/30">
                     {% else %}
-                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-sm font-bold text-white">
-                        {{ user_initial }}
-                    </div>
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-sm font-bold text-white">{{ user_initial }}</div>
                     {% endif %}
                     <span class="hidden sm:block text-sm font-medium text-dark-300">{{ user_email }}</span>
                 </div>
-                <!-- Logout -->
-                <button onclick="handleLogout()" class="px-4 py-2 rounded-lg text-sm font-medium text-dark-400 hover:text-white hover:bg-white/5 transition-all">
-                    Sign Out
-                </button>
+                <button onclick="handleLogout()" class="px-4 py-2 rounded-lg text-sm font-medium text-dark-400 hover:text-white hover:bg-white/5 transition-all">Sign Out</button>
             </div>
         </div>
     </div>
@@ -43,283 +56,260 @@
 <main class="pt-24 pb-16 min-h-screen relative">
     <div class="absolute inset-0 mesh-gradient opacity-30"></div>
     <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <!-- Welcome -->
-        <div class="mb-10">
-            <h1 class="text-3xl sm:text-4xl font-bold text-white mb-2">
-                Welcome back, <span class="gradient-text">{{ user_name }}</span>
-            </h1>
-            <p class="text-dark-400">Here's your misinformation intelligence overview.</p>
+
+        <!-- Welcome Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl sm:text-4xl font-bold text-white mb-1">Welcome back, <span class="gradient-text">{{ user_name }}</span></h1>
+            <p class="text-dark-400 text-sm">Misinformation Intelligence Command Center</p>
         </div>
 
-        <!-- Stats Grid -->
+        <!-- ═══════════ SECTION 1: Stats Overview ═══════════ -->
         <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <div class="glass rounded-2xl p-6 card-hover">
-                <div class="flex items-center justify-between mb-4">
+            <div class="glass rounded-2xl p-5 card-hover">
+                <div class="flex items-center justify-between mb-3">
                     <div class="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center">
-                        <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                        </svg>
+                        <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                     </div>
-                    <span class="text-xs font-medium text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-lg">+12%</span>
                 </div>
                 <div class="text-2xl font-bold text-white">{{ sources_count }}</div>
-                <div class="text-sm text-dark-400 mt-1">Sources Monitored</div>
+                <div class="text-xs text-dark-400 mt-1">Sources Monitored</div>
             </div>
-
-            <div class="glass rounded-2xl p-6 card-hover">
-                <div class="flex items-center justify-between mb-4">
+            <div class="glass rounded-2xl p-5 card-hover">
+                <div class="flex items-center justify-between mb-3">
                     <div class="w-10 h-10 rounded-xl bg-rose-500/10 flex items-center justify-center">
-                        <svg class="w-5 h-5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                        </svg>
+                        <svg class="w-5 h-5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                     </div>
-                    <span class="text-xs font-medium text-rose-400 bg-rose-500/10 px-2 py-1 rounded-lg">Last 7 days</span>
+                    <span class="text-xs font-medium text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-lg">7d</span>
                 </div>
                 <div class="text-2xl font-bold text-white">{{ threats_count }}</div>
-                <div class="text-sm text-dark-400 mt-1">Threats Detected</div>
+                <div class="text-xs text-dark-400 mt-1">Threats Detected</div>
             </div>
-
-            <div class="glass rounded-2xl p-6 card-hover">
-                <div class="flex items-center justify-between mb-4">
+            <div class="glass rounded-2xl p-5 card-hover">
+                <div class="flex items-center justify-between mb-3">
                     <div class="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
-                        <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
-                        </svg>
+                        <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
                     </div>
-                    <span class="text-xs font-medium text-amber-400 bg-amber-500/10 px-2 py-1 rounded-lg">{% if avg_risk > 7 %}High{% elif avg_risk > 4 %}Medium{% else %}Low{% endif %}</span>
+                    <span class="text-xs font-medium {% if avg_risk > 7 %}text-rose-400 bg-rose-500/10{% elif avg_risk > 4 %}text-amber-400 bg-amber-500/10{% else %}text-emerald-400 bg-emerald-500/10{% endif %} px-2 py-0.5 rounded-lg">{% if avg_risk > 7 %}High{% elif avg_risk > 4 %}Med{% else %}Low{% endif %}</span>
                 </div>
-                <div class="text-2xl font-bold text-white">{{ avg_risk }}</div>
-                <div class="text-sm text-dark-400 mt-1">Avg Risk Score</div>
+                <div class="text-2xl font-bold text-white">{{ avg_risk }}<span class="text-sm text-dark-500 font-normal">/10</span></div>
+                <div class="text-xs text-dark-400 mt-1">Avg Risk Score</div>
             </div>
-
-            <div class="glass rounded-2xl p-6 card-hover">
-                <div class="flex items-center justify-between mb-4">
+            <div class="glass rounded-2xl p-5 card-hover">
+                <div class="flex items-center justify-between mb-3">
                     <div class="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-                        <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
+                        <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     </div>
-                    <span class="text-xs font-medium text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-lg">{{ accuracy_rate }}%</span>
                 </div>
                 <div class="text-2xl font-bold text-white">{{ accuracy_rate|floatformat:1 }}%</div>
-                <div class="text-sm text-dark-400 mt-1">System Accuracy</div>
+                <div class="text-xs text-dark-400 mt-1">System Accuracy</div>
             </div>
         </div>
 
-        <!-- Content Analysis Section -->
+        <!-- ═══════════ SECTION 2: Content Analyzer ═══════════ -->
         <div class="glass rounded-2xl p-6 mb-8">
-            <div class="flex items-center justify-between mb-6">
-                <h2 class="text-xl font-bold text-white">Analyze Content</h2>
-                <button onclick="fetchNewsArticles()" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-all">
-                    <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                    </svg>
+            <div class="flex items-center justify-between mb-5">
+                <div>
+                    <h2 class="text-lg font-bold text-white">Analyze Content</h2>
+                    <p class="text-xs text-dark-500 mt-0.5">Paste any article or claim to check for misinformation</p>
+                </div>
+                <button onclick="fetchNewsArticles(this)" class="px-4 py-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-dark-300 hover:text-white text-sm font-medium transition-all flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                     Fetch Latest News
                 </button>
             </div>
             <div class="grid md:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-dark-300 mb-2">Content Title</label>
-                    <input type="text" id="contentTitle" placeholder="Enter article title..." class="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-dark-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all">
+                    <label class="block text-xs font-medium text-dark-400 mb-1.5">Content Title</label>
+                    <input type="text" id="contentTitle" placeholder="Enter article title..." class="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white text-sm placeholder-dark-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-dark-300 mb-2">Source URL (optional)</label>
-                    <input type="text" id="contentUrl" placeholder="https://..." class="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-dark-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all">
+                    <label class="block text-xs font-medium text-dark-400 mb-1.5">Source URL <span class="text-dark-600">(optional)</span></label>
+                    <input type="text" id="contentUrl" placeholder="https://..." class="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white text-sm placeholder-dark-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all">
                 </div>
                 <div class="md:col-span-2">
-                    <label class="block text-sm font-medium text-dark-300 mb-2">Content Text</label>
-                    <textarea id="contentText" rows="4" placeholder="Paste the article content here..." class="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-dark-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all resize-none"></textarea>
+                    <label class="block text-xs font-medium text-dark-400 mb-1.5">Content Text</label>
+                    <textarea id="contentText" rows="3" placeholder="Paste the article content here..." class="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white text-sm placeholder-dark-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all resize-none"></textarea>
                 </div>
                 <div class="md:col-span-2">
-                    <button onclick="analyzeContent()" class="w-full px-6 py-3 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-medium transition-all shadow-lg shadow-indigo-500/20">
-                        🔍 Analyze Content
+                    <button id="analyzeBtn" onclick="analyzeContent()" class="w-full px-6 py-3 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-medium text-sm transition-all shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                        Analyze Content
                     </button>
                 </div>
             </div>
-            <div id="analysisResult" class="hidden mt-6 p-4 rounded-xl border"></div>
+            <!-- Inline Analysis Result (shows after analysis) -->
+            <div id="analysisResult" class="hidden"></div>
         </div>
 
-        <!-- Main Dashboard Area -->
-        <div class="grid lg:grid-cols-3 gap-6">
-            <!-- Recent Alerts -->
-            <div class="lg:col-span-2 glass rounded-2xl p-6">
-                <div class="flex items-center justify-between mb-6">
-                    <h2 class="text-lg font-bold text-white">Recent Alerts</h2>
-                    <span class="text-xs text-dark-500">Last 24 hours</span>
+        <!-- ═══════════ SECTION 3: Intelligence Grid ═══════════ -->
+        <div class="grid lg:grid-cols-12 gap-6 mb-8">
+
+            <!-- LEFT: Recent Alerts (clickable) -->
+            <div class="lg:col-span-8 glass rounded-2xl p-6">
+                <div class="flex items-center justify-between mb-5">
+                    <div>
+                        <h2 class="text-lg font-bold text-white">Recent Alerts</h2>
+                        <p class="text-xs text-dark-500 mt-0.5">Click any alert for full analysis</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="relative flex h-2.5 w-2.5"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span></span>
+                        <span class="text-xs text-dark-500">Live</span>
+                    </div>
                 </div>
-                <div class="space-y-4" id="alertsContainer">
-                    {% if recent_alerts %}
-                        {% for alert in recent_alerts %}
-                        <div class="flex items-start gap-4 p-4 rounded-xl {% if alert.severity == 'critical' %}bg-rose-500/5 border border-rose-500/10{% elif alert.severity == 'warning' %}bg-amber-500/5 border border-amber-500/10{% else %}bg-blue-500/5 border border-blue-500/10{% endif %}">
-                            <div class="w-2 h-2 rounded-full {% if alert.severity == 'critical' %}bg-rose-500{% elif alert.severity == 'warning' %}bg-amber-500{% else %}bg-blue-500{% endif %} mt-2 flex-shrink-0"></div>
-                            <div class="flex-1">
-                                <div class="flex items-center gap-2 mb-1">
-                                    <span class="text-sm font-semibold text-white">{{ alert.title|truncatechars:60 }}</span>
-                                    <span class="px-2 py-0.5 rounded-md {% if alert.severity == 'critical' %}bg-rose-500/20 text-rose-400{% elif alert.severity == 'warning' %}bg-amber-500/20 text-amber-400{% else %}bg-blue-500/20 text-blue-400{% endif %} text-xs font-medium">{{ alert.get_severity_display }}</span>
-                                </div>
-                                <p class="text-sm text-dark-400">{{ alert.message|truncatechars:150 }}</p>
-                                <span class="text-xs text-dark-500 mt-2 block">{{ alert.created_at|timesince }} ago · Impact: {{ alert.analysis.societal_impact_score|floatformat:1 }}/10</span>
+                <div class="space-y-3" id="alertsContainer">
+                    {% for alert in recent_alerts %}
+                    <div class="alert-clickable flex items-start gap-3 p-4 rounded-xl {% if alert.severity == 'critical' %}bg-rose-500/5 border border-rose-500/10{% elif alert.severity == 'warning' %}bg-amber-500/5 border border-amber-500/10{% else %}bg-blue-500/5 border border-blue-500/10{% endif %}" onclick="openAlertDetail({{ alert.id }})">
+                        <div class="flex-shrink-0 mt-0.5">
+                            {% if alert.severity == 'critical' %}
+                            <div class="w-8 h-8 rounded-lg bg-rose-500/10 flex items-center justify-center"><svg class="w-4 h-4 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg></div>
+                            {% elif alert.severity == 'warning' %}
+                            <div class="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center"><svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+                            {% else %}
+                            <div class="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center"><svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+                            {% endif %}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-sm font-semibold text-white truncate">{{ alert.title|truncatechars:80 }}</span>
+                            </div>
+                            <p class="text-xs text-dark-400 line-clamp-2">{{ alert.message|truncatechars:180 }}</p>
+                            <div class="flex items-center gap-3 mt-2">
+                                <span class="px-2 py-0.5 rounded text-xs font-medium {% if alert.severity == 'critical' %}bg-rose-500/20 text-rose-400{% elif alert.severity == 'warning' %}bg-amber-500/20 text-amber-400{% else %}bg-blue-500/20 text-blue-400{% endif %}">{{ alert.get_severity_display }}</span>
+                                <span class="text-xs text-dark-600">{{ alert.created_at|timesince }} ago</span>
+                                <span class="text-xs text-dark-600">Impact: {{ alert.analysis.societal_impact_score|floatformat:1 }}/10</span>
                             </div>
                         </div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="text-center py-8 text-dark-500">
-                            <svg class="w-12 h-12 mx-auto mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                            <p>No alerts at this time</p>
-                        </div>
-                    {% endif %}
+                        <svg class="w-4 h-4 text-dark-600 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-12 text-dark-500">
+                        <svg class="w-10 h-10 mx-auto mb-3 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <p class="text-sm">No alerts — all clear</p>
+                    </div>
+                    {% endfor %}
                 </div>
             </div>
 
-            <!-- Side Panel -->
-            <div class="space-y-6">
-                <!-- Risk Meter -->
+            <!-- RIGHT: Threat Level Gauge -->
+            <div class="lg:col-span-4 space-y-6">
+                <!-- Dynamic Threat Level -->
                 <div class="glass rounded-2xl p-6">
-                    <h2 class="text-lg font-bold text-white mb-6">Threat Level</h2>
-                    <div class="relative w-40 h-40 mx-auto mb-6">
+                    <h2 class="text-sm font-semibold text-dark-400 uppercase tracking-wider mb-5">Threat Level</h2>
+                    <div class="relative w-36 h-36 mx-auto mb-4" id="threatGauge">
                         <svg class="w-full h-full -rotate-90" viewBox="0 0 120 120">
-                            <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="12"/>
-                            <circle cx="60" cy="60" r="50" fill="none" stroke="url(#riskGradient)" stroke-width="12" stroke-linecap="round" stroke-dasharray="314" stroke-dashoffset="94"/>
+                            <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="10"/>
+                            <circle id="threatArc" cx="60" cy="60" r="50" fill="none" stroke="url(#threatGrad)" stroke-width="10" stroke-linecap="round" stroke-dasharray="314" stroke-dashoffset="314" class="gauge-fill"/>
                             <defs>
-                                <linearGradient id="riskGradient">
-                                    <stop offset="0%" stop-color="#f59e0b"/>
+                                <linearGradient id="threatGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" stop-color="#10b981"/>
+                                    <stop offset="50%" stop-color="#f59e0b"/>
                                     <stop offset="100%" stop-color="#ef4444"/>
                                 </linearGradient>
                             </defs>
                         </svg>
                         <div class="absolute inset-0 flex flex-col items-center justify-center">
-                            <span class="text-3xl font-bold text-white">{{ avg_risk }}</span>
-                            <span class="text-xs text-dark-400">/ 10</span>
+                            <span class="text-3xl font-bold text-white" id="threatValue">{{ avg_risk }}</span>
+                            <span class="text-xs text-dark-500">/10</span>
                         </div>
                     </div>
-                    <div class="text-center">
+                    <div class="text-center" id="threatLabel">
                         {% if avg_risk > 7 %}
-                        <span class="px-3 py-1 rounded-lg bg-rose-500/10 text-rose-400 text-sm font-medium">Critical Risk</span>
+                        <span class="px-3 py-1 rounded-lg bg-rose-500/10 text-rose-400 text-xs font-semibold">CRITICAL</span>
                         {% elif avg_risk > 4 %}
-                        <span class="px-3 py-1 rounded-lg bg-amber-500/10 text-amber-400 text-sm font-medium">Elevated Risk</span>
+                        <span class="px-3 py-1 rounded-lg bg-amber-500/10 text-amber-400 text-xs font-semibold">ELEVATED</span>
                         {% else %}
-                        <span class="px-3 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 text-sm font-medium">Low Risk</span>
+                        <span class="px-3 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 text-xs font-semibold">NORMAL</span>
                         {% endif %}
+                    </div>
+                    <!-- Threat breakdown -->
+                    <div class="mt-5 pt-4 border-t border-white/5 space-y-2">
+                        <div class="flex justify-between text-xs">
+                            <span class="text-dark-400">High Risk</span>
+                            <span class="text-rose-400 font-medium">{{ threats_count }}</span>
+                        </div>
+                        <div class="flex justify-between text-xs">
+                            <span class="text-dark-400">Sources Active</span>
+                            <span class="text-indigo-400 font-medium">{{ sources_count }}</span>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Active Clusters -->
+                <!-- Quick Risk Distribution -->
                 <div class="glass rounded-2xl p-6">
-                    <h2 class="text-lg font-bold text-white mb-4">Active Clusters</h2>
+                    <h2 class="text-sm font-semibold text-dark-400 uppercase tracking-wider mb-4">Risk Distribution</h2>
                     <div class="space-y-3">
-                        <div class="flex items-center justify-between p-3 rounded-xl bg-white/5">
-                            <div class="flex items-center gap-3">
-                                <div class="w-8 h-8 rounded-lg bg-rose-500/10 flex items-center justify-center">
-                                    <span class="text-xs font-bold text-rose-400">#1</span>
-                                </div>
-                                <div>
-                                    <div class="text-sm font-medium text-white">Anti-Vax Network</div>
-                                    <div class="text-xs text-dark-500">847 nodes</div>
-                                </div>
+                        {% for analysis in recent_analyses|slice:":5" %}
+                        <div class="flex items-center gap-3">
+                            <div class="w-2 h-2 rounded-full flex-shrink-0 {% if analysis.risk_level == 'critical' %}bg-rose-500{% elif analysis.risk_level == 'high' %}bg-amber-500{% elif analysis.risk_level == 'medium' %}bg-blue-500{% else %}bg-emerald-500{% endif %}"></div>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-xs text-white truncate">{{ analysis.content.title|truncatechars:30 }}</div>
                             </div>
-                            <div class="flex h-6 gap-0.5">
-                                <div class="w-1 bg-rose-500 rounded-full" style="height:100%"></div>
-                                <div class="w-1 bg-rose-500 rounded-full" style="height:80%"></div>
-                                <div class="w-1 bg-rose-500 rounded-full" style="height:90%"></div>
-                                <div class="w-1 bg-rose-400 rounded-full" style="height:60%"></div>
-                            </div>
+                            <span class="text-xs font-mono {% if analysis.misinformation_likelihood > 0.7 %}text-rose-400{% elif analysis.misinformation_likelihood > 0.4 %}text-amber-400{% else %}text-emerald-400{% endif %}">{% widthratio analysis.misinformation_likelihood 1 100 %}%</span>
                         </div>
-                        <div class="flex items-center justify-between p-3 rounded-xl bg-white/5">
-                            <div class="flex items-center gap-3">
-                                <div class="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
-                                    <span class="text-xs font-bold text-amber-400">#2</span>
-                                </div>
-                                <div>
-                                    <div class="text-sm font-medium text-white">Crypto Scam Ring</div>
-                                    <div class="text-xs text-dark-500">523 nodes</div>
-                                </div>
-                            </div>
-                            <div class="flex h-6 gap-0.5">
-                                <div class="w-1 bg-amber-500 rounded-full" style="height:70%"></div>
-                                <div class="w-1 bg-amber-500 rounded-full" style="height:85%"></div>
-                                <div class="w-1 bg-amber-400 rounded-full" style="height:50%"></div>
-                                <div class="w-1 bg-amber-400 rounded-full" style="height:65%"></div>
-                            </div>
-                        </div>
-                        <div class="flex items-center justify-between p-3 rounded-xl bg-white/5">
-                            <div class="flex items-center gap-3">
-                                <div class="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                                    <span class="text-xs font-bold text-blue-400">#3</span>
-                                </div>
-                                <div>
-                                    <div class="text-sm font-medium text-white">Election Disinfo</div>
-                                    <div class="text-xs text-dark-500">312 nodes</div>
-                                </div>
-                            </div>
-                            <div class="flex h-6 gap-0.5">
-                                <div class="w-1 bg-blue-500 rounded-full" style="height:50%"></div>
-                                <div class="w-1 bg-blue-500 rounded-full" style="height:65%"></div>
-                                <div class="w-1 bg-blue-400 rounded-full" style="height:45%"></div>
-                                <div class="w-1 bg-blue-400 rounded-full" style="height:55%"></div>
-                            </div>
-                        </div>
+                        {% empty %}
+                        <p class="text-xs text-dark-600 text-center py-4">No data yet</p>
+                        {% endfor %}
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Recent Analyses Table -->
-        <div class="glass rounded-2xl p-6 mt-8">
-            <div class="flex items-center justify-between mb-6">
-                <h2 class="text-lg font-bold text-white">Recent Analyses</h2>
-                <span class="text-xs text-dark-500">Auto-refreshing</span>
+        <!-- ═══════════ SECTION 4: Recent Analyses Table ═══════════ -->
+        <div class="glass rounded-2xl p-6">
+            <div class="flex items-center justify-between mb-5">
+                <div>
+                    <h2 class="text-lg font-bold text-white">Recent Analyses</h2>
+                    <p class="text-xs text-dark-500 mt-0.5">Click any row for complete analysis details</p>
+                </div>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-sm text-left">
                     <thead>
-                        <tr class="text-dark-400 border-b border-white/10">
+                        <tr class="text-dark-500 border-b border-white/10 text-xs uppercase tracking-wider">
                             <th class="pb-3 font-medium">Content</th>
                             <th class="pb-3 font-medium">Misinfo Score</th>
                             <th class="pb-3 font-medium">Impact</th>
-                            <th class="pb-3 font-medium">Risk Level</th>
+                            <th class="pb-3 font-medium">Risk</th>
                             <th class="pb-3 font-medium">Amplification</th>
-                            <th class="pb-3 font-medium">Analyzed</th>
+                            <th class="pb-3 font-medium">Time</th>
                         </tr>
                     </thead>
                     <tbody class="text-dark-300">
                         {% for analysis in recent_analyses %}
-                        <tr class="border-b border-white/5 hover:bg-white/5 transition-colors">
-                            <td class="py-3 pr-4 max-w-xs">
-                                <div class="font-medium text-white text-sm truncate">{{ analysis.content.title|truncatechars:50 }}</div>
-                                <div class="text-xs text-dark-500">{{ analysis.content.source.name }}</div>
+                        <tr class="border-b border-white/5 row-clickable" onclick="openAnalysisDetail({{ analysis.id }})">
+                            <td class="py-3.5 pr-4 max-w-xs">
+                                <div class="font-medium text-white text-sm truncate">{{ analysis.content.title|truncatechars:55 }}</div>
+                                <div class="text-xs text-dark-600 mt-0.5">{{ analysis.content.source.name }}</div>
                             </td>
-                            <td class="py-3 pr-4">
+                            <td class="py-3.5 pr-4">
                                 <div class="flex items-center gap-2">
-                                    <div class="w-16 bg-white/5 rounded-full h-1.5">
-                                        <div class="h-1.5 rounded-full {% if analysis.misinformation_likelihood > 0.7 %}bg-rose-500{% elif analysis.misinformation_likelihood > 0.4 %}bg-amber-500{% else %}bg-emerald-500{% endif %}" style="width: {% widthratio analysis.misinformation_likelihood 1 100 %}%"></div>
+                                    <div class="w-14 bg-white/5 rounded-full h-1.5">
+                                        <div class="h-1.5 rounded-full signal-bar {% if analysis.misinformation_likelihood > 0.7 %}bg-rose-500{% elif analysis.misinformation_likelihood > 0.4 %}bg-amber-500{% else %}bg-emerald-500{% endif %}" style="width: {% widthratio analysis.misinformation_likelihood 1 100 %}%"></div>
                                     </div>
-                                    <span class="text-xs">{% widthratio analysis.misinformation_likelihood 1 100 %}%</span>
+                                    <span class="text-xs font-mono font-medium {% if analysis.misinformation_likelihood > 0.7 %}text-rose-400{% elif analysis.misinformation_likelihood > 0.4 %}text-amber-400{% else %}text-emerald-400{% endif %}">{% widthratio analysis.misinformation_likelihood 1 100 %}%</span>
                                 </div>
                             </td>
-                            <td class="py-3 pr-4">
+                            <td class="py-3.5 pr-4">
                                 <span class="font-medium text-white">{{ analysis.societal_impact_score|floatformat:1 }}</span>
-                                <span class="text-xs text-dark-500">/10</span>
+                                <span class="text-xs text-dark-600">/10</span>
                             </td>
-                            <td class="py-3 pr-4">
-                                <span class="px-2 py-0.5 rounded-md text-xs font-medium
-                                    {% if analysis.risk_level == 'critical' %}bg-rose-500/20 text-rose-400
-                                    {% elif analysis.risk_level == 'high' %}bg-amber-500/20 text-amber-400
-                                    {% elif analysis.risk_level == 'medium' %}bg-blue-500/20 text-blue-400
-                                    {% else %}bg-emerald-500/20 text-emerald-400{% endif %}">
+                            <td class="py-3.5 pr-4">
+                                <span class="px-2 py-0.5 rounded text-xs font-semibold
+                                    {% if analysis.risk_level == 'critical' %}bg-rose-500/15 text-rose-400
+                                    {% elif analysis.risk_level == 'high' %}bg-amber-500/15 text-amber-400
+                                    {% elif analysis.risk_level == 'medium' %}bg-blue-500/15 text-blue-400
+                                    {% else %}bg-emerald-500/15 text-emerald-400{% endif %}">
                                     {{ analysis.get_risk_level_display }}
                                 </span>
                             </td>
-                            <td class="py-3 pr-4">
-                                <span class="text-xs">{% widthratio analysis.amplification_risk 1 100 %}%</span>
+                            <td class="py-3.5 pr-4">
+                                <span class="text-xs font-mono">{% widthratio analysis.amplification_risk 1 100 %}%</span>
                             </td>
-                            <td class="py-3 text-xs text-dark-500">{{ analysis.analyzed_at|timesince }} ago</td>
+                            <td class="py-3.5 text-xs text-dark-600 whitespace-nowrap">{{ analysis.analyzed_at|timesince }} ago</td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="6" class="py-8 text-center text-dark-500">No analyses yet. Analyze content or fetch news to get started!</td>
+                            <td colspan="6" class="py-12 text-center text-dark-600 text-sm">No analyses yet. Analyze content or fetch news to get started.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -328,179 +318,415 @@
         </div>
     </div>
 </main>
+
+<!-- ═══════════ DETAIL MODAL ═══════════ -->
+<div id="detailModal" class="fixed inset-0 z-[100] hidden">
+    <div class="modal-backdrop absolute inset-0" onclick="closeModal()"></div>
+    <div class="relative z-10 flex items-start justify-center min-h-screen p-4 pt-20">
+        <div class="modal-enter w-full max-w-3xl bg-dark-900 rounded-2xl border border-white/10 shadow-2xl overflow-hidden max-h-[80vh] flex flex-col">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between p-5 border-b border-white/5 flex-shrink-0" id="modalHeader">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div id="modalRiskBadge" class="flex-shrink-0"></div>
+                    <div class="min-w-0">
+                        <h3 class="text-base font-bold text-white truncate" id="modalTitle">Loading...</h3>
+                        <p class="text-xs text-dark-500" id="modalMeta"></p>
+                    </div>
+                </div>
+                <button onclick="closeModal()" class="text-dark-500 hover:text-white transition p-1 flex-shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <!-- Modal Body (scrollable) -->
+            <div class="overflow-y-auto flex-1 p-5" id="modalBody">
+                <div class="text-center py-8">
+                    <div class="animate-spin w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full mx-auto"></div>
+                    <p class="text-dark-400 text-sm mt-3">Loading analysis...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    async function handleLogout() {
-        try {
-            await supabaseClient.auth.signOut();
-            window.location.href = '/accounts/logout/';
-        } catch (err) {
-            window.location.href = '/accounts/logout/';
-        }
+// ──────── Auth ────────
+async function handleLogout() {
+    try { await supabaseClient.auth.signOut(); } catch(e) {}
+    window.location.href = '/accounts/logout/';
+}
+
+// ──────── Threat Gauge Animation ────────
+document.addEventListener('DOMContentLoaded', () => {
+    const arc = document.getElementById('threatArc');
+    if (arc) {
+        const risk = {{ avg_risk|default:"0" }};
+        const pct = Math.min(risk / 10, 1);
+        const offset = 314 - (314 * pct);
+        setTimeout(() => { arc.style.strokeDashoffset = offset; }, 300);
+    }
+});
+
+// ──────── Analyze Content ────────
+async function analyzeContent() {
+    const title = document.getElementById('contentTitle').value.trim();
+    const text = document.getElementById('contentText').value.trim();
+    const url = document.getElementById('contentUrl').value.trim();
+    if (!title || !text) { alert('Please enter both title and content text'); return; }
+
+    const btn = document.getElementById('analyzeBtn');
+    const resultDiv = document.getElementById('analysisResult');
+    btn.disabled = true;
+    btn.innerHTML = '<div class="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div> Analyzing with AI...';
+    resultDiv.className = 'mt-6';
+    resultDiv.innerHTML = '';
+
+    try {
+        const resp = await fetch('/api/analyze/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title, text, url, source_name: url ? new URL(url).hostname : 'User Input' })
+        });
+        const data = await resp.json();
+        if (!data.success) throw new Error(data.error);
+        renderInlineResult(data.results, resultDiv);
+    } catch(e) {
+        resultDiv.innerHTML = `<div class="p-4 rounded-xl bg-rose-500/5 border border-rose-500/20 text-rose-400 text-sm">${e.message}</div>`;
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg> Analyze Content';
+    }
+}
+
+function renderInlineResult(r, el) {
+    const ml = r.misinformation_likelihood || 0;
+    const pct = (ml * 100).toFixed(1);
+    const risk = r.risk_level || 'low';
+    const rc = risk === 'critical' ? 'rose' : risk === 'high' ? 'amber' : risk === 'medium' ? 'blue' : 'emerald';
+    const impact = r.societal_impact_score || 0;
+    const amp = r.amplification_risk || 0;
+    const reach = (r.estimated_reach || 0).toLocaleString();
+    const conf = ((r.confidence || 0) * 100).toFixed(0);
+    const expl = r.explanation || 'No explanation available.';
+    const srcAttr = r.source_attribution || '';
+    const topics = (r.affected_topics || []).join(', ') || 'General';
+    const fcs = r.fact_checks || [];
+    const indicators = r.key_indicators || [];
+
+    el.innerHTML = `
+    <div class="p-5 rounded-xl border border-${rc}-500/20 bg-${rc}-500/5">
+        <!-- Verdict Header -->
+        <div class="flex items-center justify-between mb-5">
+            <div class="flex items-center gap-3">
+                <div class="w-14 h-14 rounded-xl bg-${rc}-500/10 flex items-center justify-center">
+                    <span class="text-xl font-bold text-${rc}-400">${pct}%</span>
+                </div>
+                <div>
+                    <div class="text-sm font-bold text-white">Misinformation Likelihood</div>
+                    <div class="text-xs text-dark-400">Confidence: ${conf}%</div>
+                </div>
+            </div>
+            <span class="px-3 py-1.5 rounded-lg bg-${rc}-500/20 text-${rc}-400 text-sm font-bold">${risk.toUpperCase()}</span>
+        </div>
+
+        <!-- Score Grid -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+            <div class="p-3 rounded-lg bg-white/5 text-center">
+                <div class="text-lg font-bold text-white">${(ml * 100).toFixed(0)}%</div>
+                <div class="text-xs text-dark-500">Misinfo</div>
+            </div>
+            <div class="p-3 rounded-lg bg-white/5 text-center">
+                <div class="text-lg font-bold text-white">${impact.toFixed(1)}</div>
+                <div class="text-xs text-dark-500">Impact /10</div>
+            </div>
+            <div class="p-3 rounded-lg bg-white/5 text-center">
+                <div class="text-lg font-bold text-white">${(amp * 100).toFixed(0)}%</div>
+                <div class="text-xs text-dark-500">Amp. Risk</div>
+            </div>
+            <div class="p-3 rounded-lg bg-white/5 text-center">
+                <div class="text-lg font-bold text-white">${reach}</div>
+                <div class="text-xs text-dark-500">Est. Reach</div>
+            </div>
+        </div>
+
+        <!-- Topics -->
+        <div class="mb-4">
+            <div class="text-xs text-dark-500 mb-1.5">Sensitive Topics</div>
+            <div class="flex flex-wrap gap-1.5">${topics.split(', ').map(t => `<span class="indicator-pill bg-white/5 text-dark-300">${t}</span>`).join('')}</div>
+        </div>
+
+        <!-- AI Explanation -->
+        <div class="p-4 rounded-lg bg-white/5 mb-4">
+            <div class="text-xs font-semibold text-indigo-400 mb-2 flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+                AI Reasoning ${srcAttr ? '— with Source Attribution' : ''}
+            </div>
+            <p class="text-sm text-dark-300 leading-relaxed">${expl}</p>
+            ${srcAttr ? `<p class="text-sm text-dark-300 mt-3 pt-3 border-t border-white/5 italic">${srcAttr}</p>` : ''}
+        </div>
+
+        <!-- Key Indicators -->
+        ${indicators.length > 0 ? `
+        <div class="mb-4">
+            <div class="text-xs font-semibold text-dark-400 mb-2">Key Indicators</div>
+            <div class="space-y-1.5">
+                ${indicators.slice(0, 5).map(i => {
+                    const s = i.score || 0;
+                    const c = s > 0.6 ? 'rose' : s > 0.3 ? 'amber' : 'emerald';
+                    return `<div class="flex items-start gap-2 text-xs">
+                        <span class="indicator-pill bg-${c}-500/10 text-${c}-400 flex-shrink-0">${(s*100).toFixed(0)}%</span>
+                        <span class="text-dark-300">${i.description || i.type}</span>
+                    </div>`;
+                }).join('')}
+            </div>
+        </div>` : ''}
+
+        <!-- Fact Checks -->
+        ${fcs.length > 0 ? `
+        <div>
+            <div class="text-xs font-semibold text-dark-400 mb-2">Fact-Check Results</div>
+            <div class="space-y-2">
+                ${fcs.slice(0, 3).map(fc => {
+                    const rating = (fc.rating || '').toLowerCase();
+                    const c = rating.includes('false') ? 'rose' : rating.includes('true') ? 'emerald' : 'amber';
+                    return `<div class="p-3 rounded-lg bg-white/5 flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <div class="text-xs text-dark-500">${fc.publisher || 'Unknown'}</div>
+                            <div class="text-sm text-white truncate">${fc.claim_text || ''}</div>
+                        </div>
+                        <span class="indicator-pill bg-${c}-500/10 text-${c}-400 flex-shrink-0">${fc.rating || 'Unrated'}</span>
+                    </div>`;
+                }).join('')}
+            </div>
+        </div>` : ''}
+    </div>`;
+}
+
+// ──────── Detail Modal ────────
+function openAnalysisDetail(id) {
+    showModal();
+    fetch(`/api/analysis/${id}/`).then(r => r.json()).then(data => {
+        if (!data.success) throw new Error(data.error);
+        renderDetailModal(data.analysis);
+    }).catch(e => {
+        document.getElementById('modalBody').innerHTML = `<p class="text-rose-400 text-sm">${e.message}</p>`;
+    });
+}
+
+function openAlertDetail(id) {
+    showModal();
+    fetch(`/api/alert/${id}/`).then(r => r.json()).then(data => {
+        if (!data.success) throw new Error(data.error);
+        const a = data.alert;
+        renderDetailModal(a.analysis, {
+            alertSeverity: a.severity,
+            alertTitle: a.alert_title,
+            alertMessage: a.message,
+        });
+    }).catch(e => {
+        document.getElementById('modalBody').innerHTML = `<p class="text-rose-400 text-sm">${e.message}</p>`;
+    });
+}
+
+function showModal() {
+    const m = document.getElementById('detailModal');
+    m.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    document.getElementById('modalTitle').textContent = 'Loading...';
+    document.getElementById('modalMeta').textContent = '';
+    document.getElementById('modalRiskBadge').innerHTML = '';
+    document.getElementById('modalBody').innerHTML = '<div class="text-center py-8"><div class="animate-spin w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full mx-auto"></div><p class="text-dark-400 text-sm mt-3">Loading full analysis...</p></div>';
+}
+
+function closeModal() {
+    document.getElementById('detailModal').classList.add('hidden');
+    document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+function renderDetailModal(a, alertInfo = null) {
+    const ml = a.misinformation_likelihood || 0;
+    const pct = (ml * 100).toFixed(1);
+    const risk = a.risk_level || 'low';
+    const rc = risk === 'critical' ? 'rose' : risk === 'high' ? 'amber' : risk === 'medium' ? 'blue' : 'emerald';
+
+    // Header
+    document.getElementById('modalTitle').textContent = a.title || 'Analysis Detail';
+    document.getElementById('modalMeta').textContent = `${a.source_name || 'Unknown Source'} · Analyzed ${new Date(a.analyzed_at).toLocaleDateString()}`;
+    document.getElementById('modalRiskBadge').innerHTML = `<span class="px-2.5 py-1 rounded-lg bg-${rc}-500/20 text-${rc}-400 text-xs font-bold">${risk.toUpperCase()}</span>`;
+
+    const indicators = a.key_indicators || [];
+    const fcs = a.fact_check_results || [];
+    const topics = (a.affected_topics || []).join(', ') || 'General';
+    const triggers = (a.emotional_triggers || []).join(', ') || 'None';
+
+    let body = '';
+
+    // Alert banner if from alert
+    if (alertInfo) {
+        const sc = alertInfo.alertSeverity === 'critical' ? 'rose' : alertInfo.alertSeverity === 'warning' ? 'amber' : 'blue';
+        body += `<div class="p-4 rounded-xl bg-${sc}-500/5 border border-${sc}-500/20 mb-5">
+            <div class="text-xs font-semibold text-${sc}-400 mb-1">ALERT — ${(alertInfo.alertSeverity || '').toUpperCase()}</div>
+            <p class="text-sm text-dark-300">${alertInfo.alertMessage || ''}</p>
+        </div>`;
     }
 
-    // Analyze content
-    async function analyzeContent() {
-        const title = document.getElementById('contentTitle').value.trim();
-        const text = document.getElementById('contentText').value.trim();
-        const url = document.getElementById('contentUrl').value.trim();
+    // ── THREAT LEVEL HERO ──
+    body += `
+    <div class="flex items-center gap-5 mb-6 p-4 rounded-xl bg-white/5">
+        <div class="relative w-20 h-20 flex-shrink-0">
+            <svg class="w-full h-full -rotate-90" viewBox="0 0 80 80">
+                <circle cx="40" cy="40" r="32" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="8"/>
+                <circle cx="40" cy="40" r="32" fill="none" stroke="${rc === 'rose' ? '#ef4444' : rc === 'amber' ? '#f59e0b' : rc === 'blue' ? '#3b82f6' : '#10b981'}" stroke-width="8" stroke-linecap="round" stroke-dasharray="201" stroke-dashoffset="${201 - (201 * ml)}" class="score-ring"/>
+            </svg>
+            <div class="absolute inset-0 flex items-center justify-center">
+                <span class="text-lg font-bold text-white">${pct}%</span>
+            </div>
+        </div>
+        <div>
+            <div class="text-xs text-dark-500 mb-1">Misinformation Likelihood</div>
+            <div class="text-white font-semibold">${risk.charAt(0).toUpperCase() + risk.slice(1)} Risk</div>
+            <div class="text-xs text-dark-500 mt-1">Confidence: ${((a.confidence_score || 0) * 100).toFixed(0)}%</div>
+        </div>
+    </div>`;
 
-        if (!title || !text) {
-            alert('Please enter both title and content text');
-            return;
-        }
+    // ── SCORE CARDS ──
+    body += `
+    <div class="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-6">
+        <div class="p-3 rounded-lg bg-white/5 text-center">
+            <div class="text-base font-bold text-white">${((a.credibility_score || 0)*100).toFixed(0)}%</div>
+            <div class="text-xs text-dark-500">Credibility</div>
+        </div>
+        <div class="p-3 rounded-lg bg-white/5 text-center">
+            <div class="text-base font-bold text-white">${(a.societal_impact_score || 0).toFixed(1)}</div>
+            <div class="text-xs text-dark-500">Impact /10</div>
+        </div>
+        <div class="p-3 rounded-lg bg-white/5 text-center">
+            <div class="text-base font-bold text-white">${((a.amplification_risk || 0)*100).toFixed(0)}%</div>
+            <div class="text-xs text-dark-500">Amp. Risk</div>
+        </div>
+        <div class="p-3 rounded-lg bg-white/5 text-center">
+            <div class="text-base font-bold text-white">${(a.estimated_reach || 0).toLocaleString()}</div>
+            <div class="text-xs text-dark-500">Est. Reach</div>
+        </div>
+        <div class="p-3 rounded-lg bg-white/5 text-center">
+            <div class="text-base font-bold text-white">${((a.bias_score || 0)*100).toFixed(0)}%</div>
+            <div class="text-xs text-dark-500">Bias</div>
+        </div>
+    </div>`;
 
-        const resultDiv = document.getElementById('analysisResult');
-        resultDiv.className = 'mt-6 p-4 rounded-xl border border-indigo-500/20 bg-indigo-500/5';
-        resultDiv.innerHTML = '<div class="text-center"><div class="animate-spin w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full mx-auto"></div><p class="text-white mt-2">Analyzing content...</p></div>';
-        resultDiv.classList.remove('hidden');
+    // ── TOPICS & EMOTIONS ──
+    body += `
+    <div class="grid sm:grid-cols-2 gap-4 mb-6">
+        <div>
+            <div class="text-xs font-semibold text-dark-400 mb-2">Sensitive Topics</div>
+            <div class="flex flex-wrap gap-1.5">${topics.split(', ').map(t => `<span class="indicator-pill bg-indigo-500/10 text-indigo-400">${t}</span>`).join('')}</div>
+        </div>
+        <div>
+            <div class="text-xs font-semibold text-dark-400 mb-2">Emotional Triggers</div>
+            <div class="flex flex-wrap gap-1.5">${triggers.split(', ').map(t => `<span class="indicator-pill bg-violet-500/10 text-violet-400">${t}</span>`).join('')}</div>
+        </div>
+    </div>`;
 
-        try {
-            const response = await fetch('/api/analyze/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    title: title,
-                    text: text,
-                    url: url,
-                    source_name: url ? new URL(url).hostname : 'User Input'
-                })
-            });
+    // ── AI EXPLANATION ──
+    body += `
+    <div class="p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/10 mb-6">
+        <div class="text-xs font-semibold text-indigo-400 mb-2 flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+            SatyaSetu AI Reasoning
+        </div>
+        <p class="text-sm text-dark-300 leading-relaxed whitespace-pre-line">${a.explanation || 'No explanation available.'}</p>
+    </div>`;
 
-            const data = await response.json();
-
-            if (data.success) {
-                const results = data.results;
-                const riskLevel = results.risk_level || 'low';
-                const misinfoLikelihood = results.misinformation_likelihood || 0;
-                const credScore = results.credibility_score || 0;
-                const impactScore = results.societal_impact_score || 0;
-                const ampRisk = results.amplification_risk || 0;
-                const estReach = results.estimated_reach || 0;
-                const confidence = results.confidence || 0;
-                const explanation = results.explanation || 'No explanation available.';
-                const factChecks = results.fact_checks || [];
-
-                const riskClass = riskLevel === 'critical' ? 'rose' : 
-                                 riskLevel === 'high' ? 'amber' : 
-                                 riskLevel === 'medium' ? 'blue' : 'emerald';
-                
-                resultDiv.className = `mt-6 p-6 rounded-xl border border-${riskClass}-500/20 bg-${riskClass}-500/5`;
-                resultDiv.innerHTML = `
-                    <div class="flex items-start justify-between mb-4">
-                        <h3 class="text-lg font-bold text-white">Analysis Results</h3>
-                        <span class="px-3 py-1 rounded-lg bg-${riskClass}-500/20 text-${riskClass}-400 text-sm font-medium">${riskLevel.toUpperCase()} RISK</span>
-                    </div>
-                    
-                    <div class="grid md:grid-cols-3 gap-4 mb-4">
-                        <div class="p-3 rounded-lg bg-white/5">
-                            <div class="text-xs text-dark-400 mb-1">Misinformation Likelihood</div>
-                            <div class="text-2xl font-bold text-white">${(misinfoLikelihood * 100).toFixed(1)}%</div>
-                        </div>
-                        <div class="p-3 rounded-lg bg-white/5">
-                            <div class="text-xs text-dark-400 mb-1">Credibility Score</div>
-                            <div class="text-2xl font-bold text-white">${(credScore * 100).toFixed(1)}%</div>
-                        </div>
-                        <div class="p-3 rounded-lg bg-white/5">
-                            <div class="text-xs text-dark-400 mb-1">Societal Impact</div>
-                            <div class="text-2xl font-bold text-white">${impactScore}/10</div>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-4">
-                        <div class="text-sm font-medium text-dark-300 mb-2">Amplification Risk</div>
-                        <div class="w-full bg-white/5 rounded-full h-2">
-                            <div class="bg-gradient-to-r from-indigo-500 to-violet-500 h-2 rounded-full" style="width: ${(ampRisk * 100)}%"></div>
-                        </div>
-                        <div class="text-xs text-dark-400 mt-1">${(ampRisk * 100).toFixed(1)}% - Est. reach: ${estReach.toLocaleString()} people</div>
-                    </div>
-                    
-                    <div class="p-4 rounded-lg bg-white/5 mb-4">
-                        <div class="text-sm font-medium text-white mb-2">🤖 AI Explanation</div>
-                        <p class="text-sm text-dark-300">${explanation}</p>
-                        <div class="text-xs text-dark-500 mt-2">Confidence: ${(confidence * 100).toFixed(1)}%</div>
-                    </div>
-                    
-                    ${factChecks.length > 0 ? `
-                        <div class="mt-4">
-                            <div class="text-sm font-medium text-white mb-2">✅ Fact-Check Results</div>
-                            <div class="space-y-2">
-                                ${factChecks.slice(0, 3).map(fc => {
-                                    const rating = (fc.rating || 'Unrated').toLowerCase();
-                                    const ratingColor = rating.includes('false') ? 'rose' : rating.includes('true') ? 'emerald' : 'amber';
-                                    return `
-                                    <div class="p-3 rounded-lg bg-white/5">
-                                        <div class="text-xs text-dark-400">${fc.publisher || 'Unknown'}</div>
-                                        <div class="text-sm text-white font-medium">${fc.claim_text || 'No claim text'}</div>
-                                        <div class="text-sm text-${ratingColor}-400 mt-1">Rating: ${fc.rating || 'Unrated'}</div>
-                                        ${fc.url ? `<a href="${fc.url}" target="_blank" class="text-xs text-indigo-400 hover:text-indigo-300">View source →</a>` : ''}
-                                    </div>`;
-                                }).join('')}
-                            </div>
-                        </div>
-                    ` : ''}
-                `;
-            } else {
-                resultDiv.className = 'mt-6 p-4 rounded-xl border border-rose-500/20 bg-rose-500/5';
-                resultDiv.innerHTML = `<p class="text-rose-400">Error: ${data.error}</p>`;
-            }
-        } catch (error) {
-            resultDiv.className = 'mt-6 p-4 rounded-xl border border-rose-500/20 bg-rose-500/5';
-            resultDiv.innerHTML = `<p class="text-rose-400">Error analyzing content: ${error.message}</p>`;
-        }
+    // ── CONTENT PREVIEW ──
+    if (a.text) {
+        const preview = a.text.length > 400 ? a.text.substring(0, 400) + '...' : a.text;
+        body += `
+        <div class="mb-6">
+            <div class="text-xs font-semibold text-dark-400 mb-2">Original Content</div>
+            <div class="p-4 rounded-lg bg-white/5 text-sm text-dark-300 leading-relaxed">${preview}</div>
+            ${a.url ? `<a href="${a.url}" target="_blank" class="inline-flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 mt-2">View original source <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg></a>` : ''}
+        </div>`;
     }
 
-    // Fetch news articles
-    async function fetchNewsArticles() {
-        const button = event.target;
-        const originalText = button.innerHTML;
-        button.disabled = true;
-        button.innerHTML = '<span class="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span> Fetching...';
-
-        try {
-            const response = await fetch('/api/fetch-news/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    auto_analyze: true
-                })
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                alert(`Successfully fetched ${data.articles_found} articles!\n${data.articles_analyzed} analyzed for misinformation.`);
-                location.reload();
-            } else {
-                alert('Error fetching news: ' + data.error);
-            }
-        } catch (error) {
-            alert('Error: ' + error.message);
-        } finally {
-            button.disabled = false;
-            button.innerHTML = originalText;
-        }
+    // ── KEY INDICATORS ──
+    if (indicators.length > 0) {
+        body += `
+        <div class="mb-6">
+            <div class="text-xs font-semibold text-dark-400 mb-3">Detection Indicators</div>
+            <div class="space-y-2">
+                ${indicators.map(i => {
+                    const s = i.score || 0;
+                    const c = s > 0.6 ? 'rose' : s > 0.3 ? 'amber' : 'emerald';
+                    return `<div class="flex items-start gap-3 p-3 rounded-lg bg-white/5">
+                        <span class="indicator-pill bg-${c}-500/10 text-${c}-400 flex-shrink-0">${(s*100).toFixed(0)}%</span>
+                        <div>
+                            <div class="text-xs font-medium text-dark-300">${i.type ? i.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : ''}</div>
+                            <div class="text-xs text-dark-500 mt-0.5">${i.description || ''}</div>
+                        </div>
+                    </div>`;
+                }).join('')}
+            </div>
+        </div>`;
     }
 
-    // Auto-refresh alerts every 30 seconds
-    setInterval(async () => {
-        try {
-            const response = await fetch('/api/alerts/?limit=5');
-            const data = await response.json();
-            
-            if (data.success && data.alerts.length > 0) {
-                // Update alerts UI if needed
-                console.log('Alerts updated:', data.alerts.length);
-            }
-        } catch (error) {
-            console.error('Error fetching alerts:', error);
+    // ── FACT CHECKS ──
+    if (fcs.length > 0) {
+        body += `
+        <div>
+            <div class="text-xs font-semibold text-dark-400 mb-3">Fact-Check Cross-Reference</div>
+            <div class="space-y-2">
+                ${fcs.map(fc => {
+                    const rating = (fc.rating || '').toLowerCase();
+                    const c = rating.includes('false') || rating.includes('fake') || rating.includes('misleading') ? 'rose' : rating.includes('true') || rating.includes('correct') ? 'emerald' : 'amber';
+                    return `<div class="p-3 rounded-lg bg-white/5">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-xs font-medium text-dark-400">${fc.publisher || 'Unknown'}</span>
+                            <span class="indicator-pill bg-${c}-500/10 text-${c}-400">${fc.rating || 'Unrated'}</span>
+                        </div>
+                        <div class="text-sm text-white">${fc.claim_text || ''}</div>
+                        ${fc.url ? `<a href="${fc.url}" target="_blank" class="text-xs text-indigo-400 hover:text-indigo-300 mt-1 inline-block">View fact-check →</a>` : ''}
+                    </div>`;
+                }).join('')}
+            </div>
+        </div>`;
+    }
+
+    document.getElementById('modalBody').innerHTML = body;
+}
+
+// ──────── Fetch News ────────
+async function fetchNewsArticles(btn) {
+    const originalHTML = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<div class="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div> Fetching...';
+    try {
+        const resp = await fetch('/api/fetch-news/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ auto_analyze: true })
+        });
+        const data = await resp.json();
+        if (data.success) {
+            alert(`Fetched ${data.articles_found} articles. ${data.articles_analyzed} analyzed.`);
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
         }
-    }, 30000);
+    } catch(e) { alert('Error: ' + e.message); }
+    finally { btn.disabled = false; btn.innerHTML = originalHTML; }
+}
+
+// ──────── Auto-refresh alerts ────────
+setInterval(async () => {
+    try {
+        const r = await fetch('/api/alerts/?limit=5');
+        const d = await r.json();
+        if (d.success) console.log('Alerts:', d.alerts.length);
+    } catch(e) {}
+}, 30000);
 </script>
 {% endblock %}

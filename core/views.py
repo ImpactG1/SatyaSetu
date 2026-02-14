@@ -194,7 +194,14 @@ def analyze_content_api(request):
                 'velocity_score': analysis.velocity_score,
                 'explanation': analysis.explanation,
                 'confidence': analysis.confidence_score,
-                'fact_checks': fact_checks
+                'fact_checks': fact_checks,
+                'source_attribution': analysis_results.get('source_attribution', ''),
+                'signal_scores': analysis_results.get('signal_scores', {}),
+                'key_indicators': analysis_results.get('key_indicators', []),
+                'affected_topics': analysis_results.get('affected_topics', []),
+                'sentiment_score': analysis_results.get('sentiment_score', 0),
+                'emotional_triggers': analysis_results.get('emotional_triggers', []),
+                'bias_score': analysis_results.get('bias_score', 0),
             }
         })
         
@@ -394,4 +401,110 @@ def get_stats_api(request):
         
     except Exception as e:
         logger.error(f"Error fetching stats: {e}")
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@require_http_methods(["GET"])
+def get_analysis_detail_api(request, analysis_id):
+    """
+    Get full detail for a specific analysis
+    GET /api/analysis/<id>/
+    """
+    try:
+        analysis = get_object_or_404(
+            MisinformationAnalysis.objects.select_related('content__source'),
+            id=analysis_id
+        )
+
+        data = {
+            'id': analysis.id,
+            'title': analysis.content.title,
+            'text': analysis.content.text,
+            'url': analysis.content.url or '',
+            'source_name': analysis.content.source.name,
+            'source_credibility': analysis.content.source.credibility_score,
+            'published_date': analysis.content.published_date.isoformat() if analysis.content.published_date else '',
+            'analyzed_at': analysis.analyzed_at.isoformat(),
+
+            'misinformation_likelihood': analysis.misinformation_likelihood,
+            'credibility_score': analysis.credibility_score,
+            'bias_score': analysis.bias_score,
+            'risk_level': analysis.risk_level,
+
+            'amplification_risk': analysis.amplification_risk,
+            'estimated_reach': analysis.estimated_reach,
+            'velocity_score': analysis.velocity_score,
+
+            'societal_impact_score': analysis.societal_impact_score,
+            'affected_topics': analysis.affected_topics or [],
+
+            'sentiment_score': analysis.sentiment_score,
+            'emotional_triggers': analysis.emotional_triggers or [],
+
+            'explanation': analysis.explanation,
+            'confidence_score': analysis.confidence_score,
+            'key_indicators': analysis.key_indicators or [],
+            'fact_check_results': analysis.fact_check_results or [],
+        }
+
+        return JsonResponse({'success': True, 'analysis': data})
+
+    except Exception as e:
+        logger.error(f"Error fetching analysis detail: {e}")
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@require_http_methods(["GET"])
+def get_alert_detail_api(request, alert_id):
+    """
+    Get full detail for a specific alert
+    GET /api/alert/<id>/
+    """
+    try:
+        alert = get_object_or_404(
+            Alert.objects.select_related('analysis__content__source'),
+            id=alert_id
+        )
+        analysis = alert.analysis
+
+        data = {
+            'id': alert.id,
+            'severity': alert.severity,
+            'alert_title': alert.title,
+            'message': alert.message,
+            'impact_areas': alert.impact_areas or [],
+            'is_acknowledged': alert.is_acknowledged,
+            'created_at': alert.created_at.isoformat(),
+
+            # Full analysis data
+            'analysis': {
+                'id': analysis.id,
+                'title': analysis.content.title,
+                'text': analysis.content.text,
+                'url': analysis.content.url or '',
+                'source_name': analysis.content.source.name,
+
+                'misinformation_likelihood': analysis.misinformation_likelihood,
+                'credibility_score': analysis.credibility_score,
+                'risk_level': analysis.risk_level,
+                'societal_impact_score': analysis.societal_impact_score,
+                'amplification_risk': analysis.amplification_risk,
+                'estimated_reach': analysis.estimated_reach,
+                'velocity_score': analysis.velocity_score,
+
+                'explanation': analysis.explanation,
+                'confidence_score': analysis.confidence_score,
+                'key_indicators': analysis.key_indicators or [],
+                'fact_check_results': analysis.fact_check_results or [],
+                'affected_topics': analysis.affected_topics or [],
+                'sentiment_score': analysis.sentiment_score,
+                'emotional_triggers': analysis.emotional_triggers or [],
+                'bias_score': analysis.bias_score,
+            },
+        }
+
+        return JsonResponse({'success': True, 'alert': data})
+
+    except Exception as e:
+        logger.error(f"Error fetching alert detail: {e}")
         return JsonResponse({'error': str(e)}, status=500)
