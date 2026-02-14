@@ -64,6 +64,14 @@ class ClaimPlausibilityAnalyzer:
         (r'\b(end\s+of\s+(the\s+)?world|apocalypse|martial\s+law|civil\s+war|total\s+collapse|mass\s+extinction|world\s+war\s+3)\b', 'doomsday'),
         # Secret knowledge / suppressed truth
         (r'\b(what\s+they\s+hide|government\s+hiding|media\s+won\'?t\s+(tell|show|report)|exposed|exposed!|exposed:)\b', 'suppressed_truth'),
+        # Foreign leader / impossible political claims
+        (r'\b(putin|xi\s*jinping|kim\s*jong|trump|biden|macron|erdogan|netanyahu|zelensky|sunak|starmer)\b.*?\b(prime\s*minister|president|king|queen|ruler|dictator|chancellor)\s+(of\s+)?(india|china|usa|us|america|russia|pakistan|japan|germany|france|uk|britain|brazil|australia|canada|mexico|nigeria|south\s+africa|iran|iraq|israel|saudi|egypt|turkey|indonesia|bangladesh|sri\s+lanka)\b', 'impossible_political'),
+        (r'\b(prime\s*minister|president|king|queen|ruler|dictator|chancellor)\s+(of\s+)?(india|china|usa|us|america|russia|pakistan|japan|germany|france|uk|britain|brazil|australia|canada|mexico|nigeria|south\s+africa)\b.*?\b(putin|xi\s*jinping|kim\s*jong|trump|biden|macron|erdogan|netanyahu|zelensky|sunak|starmer)\b', 'impossible_political'),
+        # Nationality mismatch in leadership
+        (r'\b(russia|russian|chinese|north\s*korean|american|french|turkish|israeli|british|german|pakistani|japanese|australian|canadian|brazilian|mexican|iranian|iraqi|egyptian|nigerian|saudi)\s+(person|citizen|national|leader|politician)\b.*?\b(prime\s*minister|president|ruler)\s+(of\s+)?(india|china|usa|america|russia|pakistan|japan|uk|france|brazil)\b', 'impossible_political'),
+        # Dead person alive / alive person dead (common misinfo patterns)
+        (r'\b(died|dead|passed\s+away|killed|assassinated)\b.*?\b(spotted|seen|alive|returns|comeback|appeared|resurfaces)\b', 'impossible_event'),
+        (r'\b(alive|spotted|seen)\b.*?\b(actually\s+)?(died|dead|passed\s+away|killed)\b', 'impossible_event'),
     ]
 
     # Vague / unverifiable attribution patterns
@@ -152,6 +160,20 @@ class ClaimPlausibilityAnalyzer:
                         'type': 'suppressed_truth',
                         'score': 0.55,
                         'description': 'Claims information is being hidden or suppressed'
+                    })
+                elif claim_type == 'impossible_political':
+                    score += 0.50
+                    indicators.append({
+                        'type': 'impossible_political',
+                        'score': 0.95,
+                        'description': 'Claims a foreign leader will lead another country — constitutionally/politically impossible'
+                    })
+                elif claim_type == 'impossible_event':
+                    score += 0.35
+                    indicators.append({
+                        'type': 'impossible_event',
+                        'score': 0.80,
+                        'description': 'Contains contradictory life/death claims or physically impossible events'
                     })
 
         # --- B. Numerical anomaly detection (separate from extraordinary patterns) ---
@@ -609,11 +631,11 @@ class ExplainableAI:
     """
 
     SIGNAL_WEIGHTS = {
-        'plausibility':  0.30,
-        'linguistic':    0.10,
-        'source':        0.20,
+        'plausibility':  0.35,
+        'linguistic':    0.08,
+        'source':        0.18,
         'fact_check':    0.25,
-        'topic':         0.15,
+        'topic':         0.14,
     }
 
     def __init__(self):
@@ -654,6 +676,26 @@ class ExplainableAI:
         fc = self.fact_checker.analyze(fact_check_results or [])
         topic_info = self.topic_classifier.classify(full_text)
 
+        # ---- LLM plausibility check (catches semantic absurdity regex can't) ----
+        llm_plaus = None
+        if self.groq.is_available:
+            try:
+                llm_plaus = self.groq.assess_claim_plausibility(title, text)
+                if llm_plaus and llm_plaus.get('score', 0) > 0:
+                    logger.info(f"LLM plausibility: {llm_plaus['score']:.2f} — {llm_plaus.get('reason', '')[:80]}")
+            except Exception as e:
+                logger.error(f"LLM plausibility check failed: {e}")
+
+        # Merge LLM plausibility with regex plausibility — take the HIGHER score
+        if llm_plaus and llm_plaus.get('score', 0) > plaus['score']:
+            llm_score = llm_plaus['score']
+            plaus['score'] = llm_score
+            plaus['indicators'].append({
+                'type': 'llm_implausible',
+                'score': round(llm_score, 3),
+                'description': f'AI plausibility check: {llm_plaus.get("reason", "Claim appears implausible")}'
+            })
+
         # ---- Collect all indicators ----
         all_indicators = (
             plaus['indicators'] +
@@ -692,6 +734,14 @@ class ExplainableAI:
 
         # FLOOR: if we have extraordinary claims + no credible sources → minimum 0.55
         if plaus['score'] >= 0.35 and source['score'] >= 0.50:
+            weighted_sum = max(weighted_sum, 0.55)
+
+        # LLM OVERRIDE: if LLM is highly confident the claim is absurd → enforce floor
+        if llm_plaus and llm_plaus.get('score', 0) >= 0.85:
+            weighted_sum = max(weighted_sum, 0.82)
+        elif llm_plaus and llm_plaus.get('score', 0) >= 0.70:
+            weighted_sum = max(weighted_sum, 0.68)
+        elif llm_plaus and llm_plaus.get('score', 0) >= 0.55:
             weighted_sum = max(weighted_sum, 0.55)
 
         # ---- Web source consensus adjustment ----

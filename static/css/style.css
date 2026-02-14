@@ -25,20 +25,9 @@
     background: rgba(99, 102, 241, 0.5);
 }
 
-/* Enhanced gradient text effects */
+/* Clean text accent */
 .gradient-text-enhanced {
-    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 25%, #06b6d4 50%, #10b981 75%, #f59e0b 100%);
-    background-size: 200% auto;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    animation: gradient-flow 3s linear infinite;
-}
-
-@keyframes gradient-flow {
-    to {
-        background-position: 200% center;
-    }
+    color: #818cf8;
 }
 
 /* Enhanced glass morphism */

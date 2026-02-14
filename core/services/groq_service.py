@@ -237,6 +237,68 @@ Plain text only, no markdown."""
             {"role": "user", "content": prompt},
         ], temperature=0.15, max_tokens=200)
 
+    def assess_claim_plausibility(self, title: str, text: str) -> Optional[Dict]:
+        """
+        Use LLM to assess whether a claim is logically, factually, or politically
+        plausible. This catches absurd claims that regex patterns miss, like
+        "Putin will be PM of India" or "Moon is made of cheese confirmed by NASA".
+        
+        Returns: {"score": 0.0-1.0, "reason": "short explanation"}
+        score = 0.0 means completely plausible, 1.0 means obviously absurd/false
+        """
+        if not self.is_available:
+            return None
+
+        system_prompt = (
+            "You are a fact-checking AI. Your ONLY job is to assess whether a claim "
+            "is logically and factually plausible based on common knowledge. "
+            "You MUST respond with ONLY valid JSON, nothing else."
+        )
+
+        user_prompt = f"""Rate how plausible this claim is on a scale of 0.0 to 1.0.
+
+TITLE: {title}
+CONTENT: {text[:400]}
+
+Score meaning:
+- 0.0 to 0.2 = Completely plausible, normal news
+- 0.2 to 0.4 = Mostly plausible, minor concerns
+- 0.4 to 0.6 = Questionable, could go either way
+- 0.6 to 0.8 = Highly implausible, likely false
+- 0.8 to 1.0 = Absurd/impossible, obviously false
+
+Think about:
+1. Is this legally/constitutionally possible?
+2. Does this contradict well-known facts?
+3. Would credible news outlets report this as real?
+4. Is this satirical or too absurd to be real?
+
+Respond ONLY with this JSON:
+{{"score": 0.85, "reason": "One sentence explaining why"}}"""
+
+        raw = self._call_groq([
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ], temperature=0.1, max_tokens=100)
+
+        if not raw:
+            return None
+
+        try:
+            cleaned = raw.strip()
+            start = cleaned.find("{")
+            end = cleaned.rfind("}")
+            if start != -1 and end != -1:
+                cleaned = cleaned[start:end + 1]
+            result = json.loads(cleaned)
+            score = float(result.get("score", 0.5))
+            score = max(0.0, min(1.0, score))
+            reason = result.get("reason", "")
+            return {"score": score, "reason": reason}
+        except (json.JSONDecodeError, ValueError, TypeError) as e:
+            logger.error(f"Failed to parse plausibility JSON: {e} — raw: {raw[:200]}")
+            return None
+
     def generate_forecast(
         self,
         title: str,
