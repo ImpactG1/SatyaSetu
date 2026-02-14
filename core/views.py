@@ -186,6 +186,8 @@ def analyze_content_api(request):
             'content_id': content.id,
             'analysis_id': analysis.id,
             'results': {
+                'title': title,
+                'url': url,
                 'misinformation_likelihood': analysis.misinformation_likelihood,
                 'credibility_score': analysis.credibility_score,
                 'risk_level': analysis.risk_level,
@@ -443,6 +445,67 @@ def get_alerts_api(request):
         
     except Exception as e:
         logger.error(f"Error fetching alerts: {e}")
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def forecast_api(request):
+    """
+    Forecast future scenarios for analyzed content using Groq LLM.
+    POST /api/forecast/
+    Body: {
+        "title": "Content title",
+        "text": "Analysis explanation text",
+        "risk_level": "high",
+        "misinformation_likelihood": 0.75,
+        "confidence": 0.85,
+        "affected_topics": ["health", "politics"],
+        "web_consensus": "mostly_denied",
+        "fact_check_count": 3
+    }
+    """
+    try:
+        data = json.loads(request.body)
+        title = data.get('title', '')
+        text = data.get('text', '')
+        risk_level = data.get('risk_level', 'low')
+        ml = data.get('misinformation_likelihood', 0)
+        confidence = data.get('confidence', 0)
+        topics = data.get('affected_topics', [])
+        consensus = data.get('web_consensus', 'insufficient')
+        fc_count = data.get('fact_check_count', 0)
+
+        if not title:
+            return JsonResponse({'error': 'Title is required for forecasting'}, status=400)
+
+        from .services.groq_service import GroqReasoningService
+        groq = GroqReasoningService()
+
+        if not groq.is_available:
+            return JsonResponse({'error': 'Forecast service unavailable — Groq API key not configured'}, status=503)
+
+        forecast = groq.generate_forecast(
+            title=title,
+            text=text,
+            risk_level=risk_level,
+            misinformation_likelihood=ml,
+            confidence=confidence,
+            affected_topics=topics,
+            web_consensus=consensus,
+            fact_check_count=fc_count,
+        )
+
+        if not forecast:
+            return JsonResponse({'error': 'Failed to generate forecast — try again'}, status=500)
+
+        return JsonResponse({
+            'success': True,
+            'forecast': forecast,
+        })
+
+    except Exception as e:
+        logger.error(f"Error in forecast generation: {e}")
         return JsonResponse({'error': str(e)}, status=500)
 
 

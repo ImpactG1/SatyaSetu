@@ -18,6 +18,177 @@
     .indicator-pill { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 9999px; font-size: 0.7rem; font-weight: 500; }
     .score-ring { filter: drop-shadow(0 0 6px currentColor); }
     .section-divider { height: 1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent); }
+
+    /* ── Verification Flowchart ── */
+    .fc-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; position: relative; }
+    @media (max-width: 768px) { .fc-grid { grid-template-columns: 1fr; } }
+    .fc-card {
+        border: 1.5px dashed rgba(255,255,255,0.12);
+        border-radius: 12px;
+        padding: 16px;
+        position: relative;
+        background: rgba(255,255,255,0.02);
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
+        transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .fc-card.visible {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    .fc-card:hover {
+        border-color: rgba(255,255,255,0.25);
+        background: rgba(255,255,255,0.04);
+    }
+    .fc-card .fc-dot {
+        width: 8px; height: 8px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.15);
+        position: absolute;
+    }
+    .fc-card .fc-dot-b { bottom: -5px; left: 50%; transform: translateX(-50%); }
+    .fc-card .fc-dot-r { right: -5px; top: 50%; transform: translateY(-50%); }
+    .fc-card.visible .fc-dot { background: rgba(255,255,255,0.35); }
+    /* Arrow indicators for flow direction */
+    .fc-arrow-down {
+        position: absolute; bottom: -16px; left: 50%; transform: translateX(-50%);
+        width: 0; height: 0;
+        border-left: 5px solid transparent; border-right: 5px solid transparent;
+        border-top: 6px solid rgba(255,255,255,0.25);
+    }
+    .fc-arrow-right {
+        position: absolute; right: -16px; top: 50%; transform: translateY(-50%);
+        width: 0; height: 0;
+        border-top: 5px solid transparent; border-bottom: 5px solid transparent;
+        border-left: 6px solid rgba(255,255,255,0.25);
+    }
+    .fc-card.visible .fc-arrow-down { border-top-color: rgba(99,102,241,0.5); }
+    .fc-card.visible .fc-arrow-right { border-left-color: rgba(99,102,241,0.5); }
+    .fc-status {
+        width: 22px; height: 22px;
+        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        flex-shrink: 0;
+    }
+    .fc-status-ok { background: rgba(16,185,129,0.15); color: #34d399; }
+    .fc-status-warn { background: rgba(245,158,11,0.15); color: #fbbf24; }
+    .fc-status-err { background: rgba(239,68,68,0.15); color: #f87171; }
+    .fc-status-info { background: rgba(99,102,241,0.15); color: #818cf8; }
+    .fc-link-row {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 4px 0;
+        position: relative;
+    }
+    .fc-vline {
+        width: 1.5px;
+        height: 28px;
+        background: repeating-linear-gradient(180deg, rgba(255,255,255,0.15) 0px, rgba(255,255,255,0.15) 4px, transparent 4px, transparent 8px);
+        position: relative;
+    }
+    .fc-vline .fc-dot-mid {
+        width: 6px; height: 6px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.25);
+        position: absolute;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+    }
+    .fc-hline {
+        height: 1.5px;
+        flex: 1;
+        background: repeating-linear-gradient(90deg, rgba(255,255,255,0.12) 0px, rgba(255,255,255,0.12) 4px, transparent 4px, transparent 8px);
+    }
+    .fc-link-row.visible .fc-vline,
+    .fc-link-row.visible .fc-hline {
+        animation: dashAppear 0.4s ease forwards;
+    }
+    @keyframes dashAppear {
+        from { opacity: 0; } to { opacity: 1; }
+    }
+    .fc-verdict-card {
+        border: 1.5px dashed rgba(255,255,255,0.12);
+        border-radius: 12px;
+        padding: 20px;
+        position: relative;
+        background: rgba(255,255,255,0.02);
+        opacity: 0;
+        transform: translateY(20px);
+        transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .fc-verdict-card.visible {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    .fc-src-link {
+        color: #818cf8;
+        font-size: 11px;
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+    .fc-src-link:hover { color: #a5b4fc; }
+
+    /* ── Forecast Feature ── */
+    .forecast-container {
+        margin-top: 16px;
+        border: 1.5px dashed rgba(99,102,241,0.2);
+        border-radius: 14px;
+        padding: 20px;
+        background: rgba(99,102,241,0.03);
+    }
+    .forecast-header {
+        display: flex; align-items: center; gap: 10px; margin-bottom: 16px;
+    }
+    .forecast-header .fc-icon {
+        width: 32px; height: 32px; border-radius: 8px;
+        background: rgba(99,102,241,0.12);
+        display: flex; align-items: center; justify-content: center;
+        color: #818cf8; font-size: 16px;
+    }
+    .forecast-scenario {
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 10px;
+        padding: 14px;
+        margin-bottom: 10px;
+        background: rgba(255,255,255,0.02);
+        transition: border-color 0.2s, background 0.2s;
+        opacity: 0; transform: translateX(-12px);
+        animation: scenarioSlide 0.4s ease forwards;
+    }
+    .forecast-scenario:hover {
+        border-color: rgba(255,255,255,0.12);
+        background: rgba(255,255,255,0.04);
+    }
+    @keyframes scenarioSlide {
+        to { opacity: 1; transform: translateX(0); }
+    }
+    .forecast-prob-bar {
+        height: 6px; border-radius: 3px; background: rgba(255,255,255,0.06);
+        overflow: hidden; margin-top: 8px;
+    }
+    .forecast-prob-fill {
+        height: 100%; border-radius: 3px;
+        transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .forecast-loading {
+        display: flex; flex-direction: column; align-items: center; gap: 12px;
+        padding: 32px 0;
+    }
+    .forecast-loading .spinner {
+        width: 28px; height: 28px;
+        border: 2.5px solid rgba(99,102,241,0.15);
+        border-top-color: #818cf8;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 {% endblock %}
 
@@ -446,6 +617,7 @@ async function analyzeContent() {
 }
 
 function renderInlineResult(r, el) {
+    _lastAnalysisResult = r;
     const ml = r.misinformation_likelihood || 0;
     const pct = (ml * 100).toFixed(1);
     const risk = r.risk_level || 'low';
@@ -563,7 +735,326 @@ function renderInlineResult(r, el) {
                 }).join('')}
             </div>
         </div>` : ''}
+        <div class="mt-4 flex justify-center gap-2 flex-wrap">
+            <button onclick="showVerificationFlowchart(this)" class="group inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:border-indigo-500/30 text-xs font-medium text-dark-400 hover:text-indigo-400 transition-all duration-200">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/></svg>
+                <span>Show Verification Process</span>
+            </button>
+            <button onclick="showForecast(this)" class="group inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:border-cyan-500/30 text-xs font-medium text-dark-400 hover:text-cyan-400 transition-all duration-200">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                <span>Forecast</span>
+            </button>
+        </div>
+        <div id="verificationFlowchart" class="hidden mt-5"></div>
+        <div id="forecastContainer" class="hidden mt-5"></div>
     </div>`;
+}
+
+// ──────── Verification Process Flowchart ────────
+var _lastAnalysisResult = null;
+
+function showVerificationFlowchart(btn) {
+    const container = document.getElementById('verificationFlowchart');
+    if (!container) return;
+    if (!container.classList.contains('hidden')) {
+        container.classList.add('hidden');
+        container.innerHTML = '';
+        btn.querySelector('span').textContent = 'Show Verification Process';
+        return;
+    }
+    btn.querySelector('span').textContent = 'Hide Verification Process';
+    container.classList.remove('hidden');
+
+    const r = _lastAnalysisResult || {};
+    const ws = r.web_sources || {};
+    const fcs = r.fact_checks || [];
+    const indicators = r.key_indicators || [];
+    const ml = r.misinformation_likelihood || 0;
+    const pct = (ml * 100).toFixed(1);
+    const risk = r.risk_level || 'low';
+    const conf = ((r.confidence || 0) * 100).toFixed(0);
+    const topics = (r.affected_topics || []).join(', ') || 'General';
+    const srcNames = ws.source_names || [];
+    const srcDetail = ws.sources_detail || [];
+    const consensus = ws.consensus || 'insufficient';
+    const fcCount = fcs.length;
+    const webTotal = ws.total || 0;
+    const expl = r.explanation || '';
+
+    // Status helpers
+    const ok = '<span class="fc-status fc-status-ok">✓</span>';
+    const warn = '<span class="fc-status fc-status-warn">⚠</span>';
+    const err = '<span class="fc-status fc-status-err">✗</span>';
+    const info = '<span class="fc-status fc-status-info">i</span>';
+
+    // Determine statuses
+    const webStatus = webTotal > 0 ? ok : warn;
+    const fcStatus = fcCount > 0 ? ok : warn;
+    const aiStatus = conf > 50 ? ok : info;
+    const riskIcon = risk === 'critical' || risk === 'high' ? err : risk === 'medium' ? warn : ok;
+    const consensusStatus = consensus === 'mostly_denied' ? err : consensus === 'mostly_supported' ? ok : consensus === 'conflicting' ? warn : info;
+
+    // Truncated source links
+    function srcLink(s) {
+        const name = (s.name || s.source_name || 'Source').substring(0, 22);
+        const url = s.url || '#';
+        return '<a href="' + url + '" target="_blank" class="fc-src-link"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>' + name + '</a>';
+    }
+
+    // Build cards — flow direction: right → and down ↓
+    // dots: 'r' = arrow right, 'd' = arrow down, 'rd' = both
+    function card(title, statusHtml, body, dots, delay) {
+        const d = dots || '';
+        let dotHtml = '';
+        if (d.includes('r')) dotHtml += '<div class="fc-dot fc-dot-r"></div><div class="fc-arrow-right"></div>';
+        if (d.includes('d')) dotHtml += '<div class="fc-dot fc-dot-b"></div><div class="fc-arrow-down"></div>';
+        return '<div class="fc-card" data-delay="' + (delay||0) + '">' + dotHtml +
+            '<div class="flex items-start justify-between gap-2 mb-2">' +
+                '<h4 class="text-xs font-bold text-white leading-tight">' + title + '</h4>' +
+                statusHtml +
+            '</div>' +
+            '<div class="text-xs text-dark-400 leading-relaxed">' + body + '</div>' +
+        '</div>';
+    }
+
+    // Connector row
+    function connRow(delay, type) {
+        if (type === 'horizontal') {
+            return '<div class="fc-link-row" data-delay="' + delay + '" style="grid-column:1/-1;"><div class="fc-hline"></div><div class="fc-vline" style="height:0;width:0;"></div><div class="fc-hline"></div></div>';
+        }
+        return '<div class="fc-link-row" data-delay="' + delay + '" style="grid-column:1/-1;justify-content:center;"><div class="fc-vline"><div class="fc-dot-mid"></div></div></div>';
+    }
+
+    let h = '';
+
+    // ═══ ROW 1: Input → Web Sources → Fact Check ═══
+    h += '<div class="fc-grid" style="gap:12px;">';
+
+    // Card 1: Input Received → arrow right
+    h += card('Input Received', ok,
+        '<span class="text-white">' + (r.title || 'Content analyzed').substring(0, 45) + (((r.title||'').length > 45) ? '...' : '') + '</span>',
+        'r', 0);
+
+    // Card 2: Web Scraping → arrow right
+    h += card('Search Verification', webStatus,
+        (webTotal > 0
+            ? 'Analyzed ' + webTotal + ' search results' +
+              (srcDetail.length > 0 ? '<div class="mt-1.5 space-y-0.5">' + srcDetail.slice(0,2).map(function(s){ return srcLink(s); }).join('') + '</div>' : '')
+            : 'No web sources found'),
+        'r', 150);
+
+    // Card 3: Fact Check → arrow down (end of row, goes down to row 2)
+    h += card('Fact Check Database', fcStatus,
+        (fcCount > 0
+            ? fcCount + ' existing fact-check' + (fcCount > 1 ? 's' : '') + ' found'
+            : 'No existing fact-checks found'),
+        'd', 300);
+
+    // ═══ Connector row: single line from Fact Check down to URL Safety ═══
+    h += '<div class="fc-link-row" data-delay="400" style="grid-column:1/-1;">';
+    h += '<div style="flex:1;"></div>';
+    h += '<div style="flex:1;"></div>';
+    h += '<div style="flex:1;display:flex;justify-content:center;"><div class="fc-vline"><div class="fc-dot-mid"></div></div></div>';
+    h += '</div>';
+
+    // ═══ ROW 2: Web Consensus ← AI Analysis ← URL Safety (reverse order: flow goes right-to-left) ═══
+    const consensusText = consensus === 'mostly_denied' ? 'Sources mostly deny this claim'
+        : consensus === 'mostly_supported' ? 'Sources mostly support this claim'
+        : consensus === 'conflicting' ? 'Sources show conflicting views'
+        : 'Insufficient data for consensus';
+
+    // Card 4: Web Consensus → arrow down (to verdict)
+    h += card('Web Consensus', consensusStatus,
+        consensusText + (srcNames.length > 0 ? '<div class="mt-1 text-dark-500">' + srcNames.slice(0,3).join(', ') + '</div>' : ''),
+        'd', 500);
+
+    // Card 5: AI Analysis → arrow left (pointing to Web Consensus)
+    const indicatorTypes = indicators.slice(0,3).map(function(i){ return i.type || ''; }).filter(Boolean);
+    h += card('AI Analysis', aiStatus,
+        'Confidence: ' + conf + '% — ' + (ml > 0.6 ? 'Likely False' : ml > 0.3 ? 'Uncertain' : 'Likely True') +
+        (indicatorTypes.length > 0 ? '<div class="mt-1 text-dark-500">' + indicatorTypes.join(', ') + '</div>' : ''),
+        '', 650);
+
+    // Card 6: URL Safety → arrow left (pointing to AI Analysis)
+    const hasUrl = r.url || '';
+    h += card('URL Safety Check', hasUrl ? ok : info,
+        hasUrl ? 'No security threats detected' : 'No URL provided for safety check',
+        '', 800);
+
+    // ═══ Connector row: single line from Web Consensus down to Verdict ═══
+    h += '<div class="fc-link-row" data-delay="900" style="grid-column:1/-1;">';
+    h += '<div style="flex:1;display:flex;justify-content:center;"><div class="fc-vline"><div class="fc-dot-mid"></div></div></div>';
+    h += '<div style="flex:1;"></div>';
+    h += '<div style="flex:1;"></div>';
+    h += '</div>';
+
+    h += '</div>'; // close fc-grid
+
+    // ═══ VERDICT CARD ═══
+    const verdictColor = risk === 'critical' || risk === 'high' ? 'rose' : risk === 'medium' ? 'amber' : 'emerald';
+    const verdictText = expl.length > 280 ? expl.substring(0, 280) + '...' : expl;
+
+    h += '<div class="max-w-md mt-0">';
+    h += '<div class="fc-verdict-card" data-delay="1000">';
+    h += '<div class="flex items-start justify-between gap-2 mb-2">';
+    h += '<h4 class="text-xs font-bold text-white">Final Verdict</h4>';
+    h += riskIcon;
+    h += '</div>';
+    h += '<p class="text-xs text-dark-300 leading-relaxed mb-3">' + verdictText + '</p>';
+
+    // Source links in verdict
+    if (srcDetail.length > 0) {
+        h += '<div class="space-y-0.5 pt-2 border-t border-white/5">';
+        srcDetail.slice(0, 3).forEach(function(s) { h += srcLink(s); });
+        h += '</div>';
+    }
+    h += '</div></div>';
+
+    container.innerHTML = h;
+
+    // Animate
+    requestAnimationFrame(function() {
+        const els = container.querySelectorAll('.fc-card, .fc-link-row, .fc-verdict-card');
+        els.forEach(function(el) {
+            const d = parseInt(el.getAttribute('data-delay') || '0', 10);
+            setTimeout(function() { el.classList.add('visible'); }, d);
+        });
+    });
+
+    setTimeout(function() {
+        container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 100);
+}
+
+// ──────── Forecast Feature ────────
+var _forecastCache = null;
+
+function showForecast(btn) {
+    const container = document.getElementById('forecastContainer');
+    if (!container) return;
+
+    // Toggle off
+    if (!container.classList.contains('hidden')) {
+        container.classList.add('hidden');
+        container.innerHTML = '';
+        btn.querySelector('span').textContent = 'Forecast';
+        _forecastCache = null;
+        return;
+    }
+
+    btn.querySelector('span').textContent = 'Hide Forecast';
+    container.classList.remove('hidden');
+
+    const r = _lastAnalysisResult || {};
+    if (!r.title && !r.explanation) {
+        container.innerHTML = '<p class="text-xs text-dark-500 text-center py-4">No analysis data available for forecasting.</p>';
+        return;
+    }
+
+    // Show loading
+    container.innerHTML = '<div class="forecast-container"><div class="forecast-loading">' +
+        '<div class="spinner"></div>' +
+        '<span class="text-xs text-dark-400">Generating future scenarios...</span>' +
+        '</div></div>';
+
+    // Call forecast API
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+    fetch('/api/forecast/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+        body: JSON.stringify({
+            title: r.title || '',
+            text: r.explanation || '',
+            risk_level: r.risk_level || 'low',
+            misinformation_likelihood: r.misinformation_likelihood || 0,
+            confidence: r.confidence || 0,
+            affected_topics: r.affected_topics || [],
+            web_consensus: (r.web_sources || {}).consensus || 'insufficient',
+            fact_check_count: (r.fact_checks || []).length,
+        })
+    })
+    .then(resp => resp.json())
+    .then(data => {
+        if (!data.success) throw new Error(data.error || 'Forecast failed');
+        renderForecast(container, data.forecast);
+    })
+    .catch(err => {
+        container.innerHTML = '<div class="forecast-container"><p class="text-xs text-rose-400 text-center py-4">⚠ ' + err.message + '</p></div>';
+    });
+}
+
+function renderForecast(container, forecast) {
+    const scenarios = forecast.scenarios || [];
+    const summary = forecast.summary || '';
+    const timeframe = forecast.timeframe || '7-14 days';
+
+    const colors = [
+        { bg: 'rgba(99,102,241,0.12)', fill: '#818cf8', text: 'text-indigo-400', border: 'border-indigo-500/20' },
+        { bg: 'rgba(245,158,11,0.12)', fill: '#fbbf24', text: 'text-amber-400', border: 'border-amber-500/20' },
+        { bg: 'rgba(16,185,129,0.12)', fill: '#34d399', text: 'text-emerald-400', border: 'border-emerald-500/20' },
+        { bg: 'rgba(239,68,68,0.12)', fill: '#f87171', text: 'text-rose-400', border: 'border-rose-500/20' },
+    ];
+
+    let h = '<div class="forecast-container">';
+
+    // Header
+    h += '<div class="forecast-header">';
+    h += '<div class="fc-icon">⟁</div>';
+    h += '<div>';
+    h += '<h3 class="text-sm font-bold text-white">Predictive Forecast</h3>';
+    h += '<p class="text-xs text-dark-400">Projected outcomes · Timeframe: ' + timeframe + '</p>';
+    h += '</div>';
+    h += '</div>';
+
+    // Quantum state label
+    h += '<div class="flex items-center gap-2 mb-4 px-1">';
+    h += '<span class="text-[10px] font-mono tracking-wider text-dark-500 uppercase">Status:</span>';
+    h += '<span class="text-[10px] font-mono tracking-wider text-cyan-400 uppercase">Superposition State — Multiple Outcomes Active</span>';
+    h += '</div>';
+
+    // Scenarios
+    scenarios.forEach(function(sc, i) {
+        const c = colors[i % colors.length];
+        const prob = sc.probability || 0;
+        const delay = (i + 1) * 150;
+
+        h += '<div class="forecast-scenario ' + c.border + '" style="animation-delay:' + delay + 'ms;">';
+        h += '<div class="flex items-start justify-between gap-3">';
+        h += '<div class="flex-1">';
+        h += '<div class="flex items-center gap-2 mb-1">';
+        h += '<span class="text-[10px] font-mono ' + c.text + ' font-bold">SCENARIO ' + String.fromCharCode(65 + i) + '</span>';
+        h += '<span class="text-xs font-bold text-white">' + prob + '%</span>';
+        h += '</div>';
+        h += '<h4 class="text-xs font-semibold text-white mb-1">' + (sc.title || 'Unknown') + '</h4>';
+        h += '<p class="text-xs text-dark-400 leading-relaxed">' + (sc.description || '') + '</p>';
+        h += '</div>';
+        h += '</div>';
+
+        // Probability bar
+        h += '<div class="forecast-prob-bar">';
+        h += '<div class="forecast-prob-fill" style="width:0%;background:' + c.fill + ';" data-width="' + prob + '%"></div>';
+        h += '</div>';
+        h += '</div>';
+    });
+
+    // Summary
+    if (summary) {
+        h += '<div class="mt-3 px-1">';
+        h += '<p class="text-xs text-dark-400 leading-relaxed"><span class="text-dark-300 font-medium">AI Assessment:</span> ' + summary + '</p>';
+        h += '</div>';
+    }
+
+    h += '</div>';
+    container.innerHTML = h;
+
+    // Animate probability bars
+    requestAnimationFrame(function() {
+        setTimeout(function() {
+            container.querySelectorAll('.forecast-prob-fill').forEach(function(bar) {
+                bar.style.width = bar.getAttribute('data-width');
+            });
+        }, 300);
+    });
 }
 
 // ──────── Detail Modal ────────

@@ -231,3 +231,111 @@ Plain text only, no markdown."""
             {"role": "system", "content": "You are a concise fact-check reporter. Write source attributions referencing publishers by name."},
             {"role": "user", "content": prompt},
         ], temperature=0.15, max_tokens=200)
+
+    def generate_forecast(
+        self,
+        title: str,
+        text: str,
+        risk_level: str,
+        misinformation_likelihood: float,
+        confidence: float,
+        affected_topics: List[str],
+        web_consensus: str = "insufficient",
+        fact_check_count: int = 0,
+    ) -> Optional[Dict]:
+        """
+        Generate predictive forecast scenarios for analyzed content.
+        Returns 3 future scenarios with probability percentages.
+        """
+        pct = round(misinformation_likelihood * 100, 1)
+        topics = ", ".join(affected_topics) if affected_topics else "General"
+
+        system_prompt = (
+            "You are SatyaSetu AI — a misinformation forecasting expert. "
+            "Given an analysis of content, predict 3 plausible future scenarios "
+            "with probability percentages that sum to 100%. "
+            "Think about viral spread, official responses, fact-checker actions, "
+            "platform moderation, and public reaction. "
+            "You MUST respond ONLY with valid JSON, no markdown, no code fences."
+        )
+
+        user_prompt = f"""Based on this misinformation analysis, predict what will happen next.
+
+CONTENT: {title}
+ANALYSIS SUMMARY: {text[:500]}
+RISK LEVEL: {risk_level.upper()}
+MISINFORMATION LIKELIHOOD: {pct}%
+CONFIDENCE: {round(confidence * 100)}%
+WEB CONSENSUS: {web_consensus}
+FACT-CHECKS FOUND: {fact_check_count}
+SENSITIVE TOPICS: {topics}
+
+Generate exactly 3 future scenarios. Respond in this exact JSON format:
+{{
+    "timeframe": "7-14 days",
+    "scenarios": [
+        {{
+            "title": "Short scenario title (3-6 words)",
+            "description": "2-3 sentence description of what happens in this scenario",
+            "probability": 45
+        }},
+        {{
+            "title": "Short scenario title",
+            "description": "2-3 sentence description",
+            "probability": 35
+        }},
+        {{
+            "title": "Short scenario title",
+            "description": "2-3 sentence description",
+            "probability": 20
+        }}
+    ],
+    "summary": "One sentence overall assessment of the most likely trajectory"
+}}
+
+Rules:
+- Probabilities must sum to exactly 100
+- Scenarios should be distinct and realistic
+- Consider the risk level and consensus when assigning probabilities
+- If misinformation likelihood is high, weight scenarios toward viral spread and debunking
+- If low, weight toward fading from attention or being confirmed
+- Be specific and actionable, not generic
+- Return ONLY the JSON object, nothing else"""
+
+        raw = self._call_groq([
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ], temperature=0.4, max_tokens=600)
+
+        if not raw:
+            return None
+
+        try:
+            # Strip markdown code fences if present
+            cleaned = raw.strip()
+            if cleaned.startswith("```"):
+                cleaned = cleaned.split("\n", 1)[1] if "\n" in cleaned else cleaned[3:]
+                if cleaned.endswith("```"):
+                    cleaned = cleaned[:-3]
+                cleaned = cleaned.strip()
+            if cleaned.startswith("json"):
+                cleaned = cleaned[4:].strip()
+
+            result = json.loads(cleaned)
+
+            # Validate structure
+            if "scenarios" not in result or not isinstance(result["scenarios"], list):
+                logger.error("Forecast response missing scenarios array")
+                return None
+
+            # Ensure probabilities sum to 100
+            total = sum(s.get("probability", 0) for s in result["scenarios"])
+            if total != 100 and total > 0:
+                for s in result["scenarios"]:
+                    s["probability"] = round(s.get("probability", 0) * 100 / total)
+
+            return result
+
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse forecast JSON: {e} — raw: {raw[:200]}")
+            return None
