@@ -60,7 +60,7 @@
                     </div>
                     <span class="text-xs font-medium text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-lg">+12%</span>
                 </div>
-                <div class="text-2xl font-bold text-white">1,247</div>
+                <div class="text-2xl font-bold text-white">{{ sources_count }}</div>
                 <div class="text-sm text-dark-400 mt-1">Sources Monitored</div>
             </div>
 
@@ -71,9 +71,9 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                         </svg>
                     </div>
-                    <span class="text-xs font-medium text-rose-400 bg-rose-500/10 px-2 py-1 rounded-lg">3 critical</span>
+                    <span class="text-xs font-medium text-rose-400 bg-rose-500/10 px-2 py-1 rounded-lg">Last 7 days</span>
                 </div>
-                <div class="text-2xl font-bold text-white">23</div>
+                <div class="text-2xl font-bold text-white">{{ threats_count }}</div>
                 <div class="text-sm text-dark-400 mt-1">Threats Detected</div>
             </div>
 
@@ -84,9 +84,9 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
                         </svg>
                     </div>
-                    <span class="text-xs font-medium text-amber-400 bg-amber-500/10 px-2 py-1 rounded-lg">High</span>
+                    <span class="text-xs font-medium text-amber-400 bg-amber-500/10 px-2 py-1 rounded-lg">{% if avg_risk > 7 %}High{% elif avg_risk > 4 %}Medium{% else %}Low{% endif %}</span>
                 </div>
-                <div class="text-2xl font-bold text-white">7.8</div>
+                <div class="text-2xl font-bold text-white">{{ avg_risk }}</div>
                 <div class="text-sm text-dark-400 mt-1">Avg Risk Score</div>
             </div>
 
@@ -97,11 +97,44 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
                     </div>
-                    <span class="text-xs font-medium text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-lg">98.2%</span>
+                    <span class="text-xs font-medium text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-lg">{{ accuracy_rate }}%</span>
                 </div>
-                <div class="text-2xl font-bold text-white">156</div>
-                <div class="text-sm text-dark-400 mt-1">Verified Clean</div>
+                <div class="text-2xl font-bold text-white">{{ accuracy_rate|floatformat:1 }}%</div>
+                <div class="text-sm text-dark-400 mt-1">System Accuracy</div>
             </div>
+        </div>
+
+        <!-- Content Analysis Section -->
+        <div class="glass rounded-2xl p-6 mb-8">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-bold text-white">Analyze Content</h2>
+                <button onclick="fetchNewsArticles()" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-all">
+                    <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                    Fetch Latest News
+                </button>
+            </div>
+            <div class="grid md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-dark-300 mb-2">Content Title</label>
+                    <input type="text" id="contentTitle" placeholder="Enter article title..." class="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-dark-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-dark-300 mb-2">Source URL (optional)</label>
+                    <input type="text" id="contentUrl" placeholder="https://..." class="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-dark-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all">
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-dark-300 mb-2">Content Text</label>
+                    <textarea id="contentText" rows="4" placeholder="Paste the article content here..." class="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-dark-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all resize-none"></textarea>
+                </div>
+                <div class="md:col-span-2">
+                    <button onclick="analyzeContent()" class="w-full px-6 py-3 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-medium transition-all shadow-lg shadow-indigo-500/20">
+                        🔍 Analyze Content
+                    </button>
+                </div>
+            </div>
+            <div id="analysisResult" class="hidden mt-6 p-4 rounded-xl border"></div>
         </div>
 
         <!-- Main Dashboard Area -->
@@ -112,42 +145,29 @@
                     <h2 class="text-lg font-bold text-white">Recent Alerts</h2>
                     <span class="text-xs text-dark-500">Last 24 hours</span>
                 </div>
-                <div class="space-y-4">
-                    <div class="flex items-start gap-4 p-4 rounded-xl bg-rose-500/5 border border-rose-500/10">
-                        <div class="w-2 h-2 rounded-full bg-rose-500 mt-2 flex-shrink-0"></div>
-                        <div class="flex-1">
-                            <div class="flex items-center gap-2 mb-1">
-                                <span class="text-sm font-semibold text-white">Critical: Health Misinformation Campaign</span>
-                                <span class="px-2 py-0.5 rounded-md bg-rose-500/20 text-rose-400 text-xs font-medium">Critical</span>
+                <div class="space-y-4" id="alertsContainer">
+                    {% if recent_alerts %}
+                        {% for alert in recent_alerts %}
+                        <div class="flex items-start gap-4 p-4 rounded-xl {% if alert.severity == 'critical' %}bg-rose-500/5 border border-rose-500/10{% elif alert.severity == 'warning' %}bg-amber-500/5 border border-amber-500/10{% else %}bg-blue-500/5 border border-blue-500/10{% endif %}">
+                            <div class="w-2 h-2 rounded-full {% if alert.severity == 'critical' %}bg-rose-500{% elif alert.severity == 'warning' %}bg-amber-500{% else %}bg-blue-500{% endif %} mt-2 flex-shrink-0"></div>
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="text-sm font-semibold text-white">{{ alert.title|truncatechars:60 }}</span>
+                                    <span class="px-2 py-0.5 rounded-md {% if alert.severity == 'critical' %}bg-rose-500/20 text-rose-400{% elif alert.severity == 'warning' %}bg-amber-500/20 text-amber-400{% else %}bg-blue-500/20 text-blue-400{% endif %} text-xs font-medium">{{ alert.get_severity_display }}</span>
+                                </div>
+                                <p class="text-sm text-dark-400">{{ alert.message|truncatechars:150 }}</p>
+                                <span class="text-xs text-dark-500 mt-2 block">{{ alert.created_at|timesince }} ago · Impact: {{ alert.analysis.societal_impact_score|floatformat:1 }}/10</span>
                             </div>
-                            <p class="text-sm text-dark-400">Coordinated campaign spreading false vaccine information across 12 platforms. Impact score: 9.2/10</p>
-                            <span class="text-xs text-dark-500 mt-2 block">2 hours ago · Twitter, Facebook, Telegram</span>
                         </div>
-                    </div>
-
-                    <div class="flex items-start gap-4 p-4 rounded-xl bg-amber-500/5 border border-amber-500/10">
-                        <div class="w-2 h-2 rounded-full bg-amber-500 mt-2 flex-shrink-0"></div>
-                        <div class="flex-1">
-                            <div class="flex items-center gap-2 mb-1">
-                                <span class="text-sm font-semibold text-white">Financial Manipulation Detected</span>
-                                <span class="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-400 text-xs font-medium">High</span>
-                            </div>
-                            <p class="text-sm text-dark-400">Fabricated earnings report circulating on financial forums. Potential market impact detected.</p>
-                            <span class="text-xs text-dark-500 mt-2 block">5 hours ago · Reddit, StockTwits</span>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-8 text-dark-500">
+                            <svg class="w-12 h-12 mx-auto mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <p>No alerts at this time</p>
                         </div>
-                    </div>
-
-                    <div class="flex items-start gap-4 p-4 rounded-xl bg-blue-500/5 border border-blue-500/10">
-                        <div class="w-2 h-2 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
-                        <div class="flex-1">
-                            <div class="flex items-center gap-2 mb-1">
-                                <span class="text-sm font-semibold text-white">Political Deepfake Flagged</span>
-                                <span class="px-2 py-0.5 rounded-md bg-blue-500/20 text-blue-400 text-xs font-medium">Medium</span>
-                            </div>
-                            <p class="text-sm text-dark-400">AI-generated video of public figure detected. Viral amplification probability: 67%</p>
-                            <span class="text-xs text-dark-500 mt-2 block">8 hours ago · YouTube, Twitter</span>
-                        </div>
-                    </div>
+                    {% endif %}
                 </div>
             </div>
 
@@ -168,12 +188,18 @@
                             </defs>
                         </svg>
                         <div class="absolute inset-0 flex flex-col items-center justify-center">
-                            <span class="text-3xl font-bold text-white">7.8</span>
+                            <span class="text-3xl font-bold text-white">{{ avg_risk }}</span>
                             <span class="text-xs text-dark-400">/ 10</span>
                         </div>
                     </div>
                     <div class="text-center">
+                        {% if avg_risk > 7 %}
+                        <span class="px-3 py-1 rounded-lg bg-rose-500/10 text-rose-400 text-sm font-medium">Critical Risk</span>
+                        {% elif avg_risk > 4 %}
                         <span class="px-3 py-1 rounded-lg bg-amber-500/10 text-amber-400 text-sm font-medium">Elevated Risk</span>
+                        {% else %}
+                        <span class="px-3 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 text-sm font-medium">Low Risk</span>
+                        {% endif %}
                     </div>
                 </div>
 
@@ -236,6 +262,67 @@
                 </div>
             </div>
         </div>
+
+        <!-- Recent Analyses Table -->
+        <div class="glass rounded-2xl p-6 mt-8">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-lg font-bold text-white">Recent Analyses</h2>
+                <span class="text-xs text-dark-500">Auto-refreshing</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left">
+                    <thead>
+                        <tr class="text-dark-400 border-b border-white/10">
+                            <th class="pb-3 font-medium">Content</th>
+                            <th class="pb-3 font-medium">Misinfo Score</th>
+                            <th class="pb-3 font-medium">Impact</th>
+                            <th class="pb-3 font-medium">Risk Level</th>
+                            <th class="pb-3 font-medium">Amplification</th>
+                            <th class="pb-3 font-medium">Analyzed</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-dark-300">
+                        {% for analysis in recent_analyses %}
+                        <tr class="border-b border-white/5 hover:bg-white/5 transition-colors">
+                            <td class="py-3 pr-4 max-w-xs">
+                                <div class="font-medium text-white text-sm truncate">{{ analysis.content.title|truncatechars:50 }}</div>
+                                <div class="text-xs text-dark-500">{{ analysis.content.source.name }}</div>
+                            </td>
+                            <td class="py-3 pr-4">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-16 bg-white/5 rounded-full h-1.5">
+                                        <div class="h-1.5 rounded-full {% if analysis.misinformation_likelihood > 0.7 %}bg-rose-500{% elif analysis.misinformation_likelihood > 0.4 %}bg-amber-500{% else %}bg-emerald-500{% endif %}" style="width: {{ analysis.misinformation_likelihood|floatformat:0 }}%"></div>
+                                    </div>
+                                    <span class="text-xs">{{ analysis.misinformation_likelihood|floatformat:1 }}%</span>
+                                </div>
+                            </td>
+                            <td class="py-3 pr-4">
+                                <span class="font-medium text-white">{{ analysis.societal_impact_score|floatformat:1 }}</span>
+                                <span class="text-xs text-dark-500">/10</span>
+                            </td>
+                            <td class="py-3 pr-4">
+                                <span class="px-2 py-0.5 rounded-md text-xs font-medium
+                                    {% if analysis.risk_level == 'critical' %}bg-rose-500/20 text-rose-400
+                                    {% elif analysis.risk_level == 'high' %}bg-amber-500/20 text-amber-400
+                                    {% elif analysis.risk_level == 'medium' %}bg-blue-500/20 text-blue-400
+                                    {% else %}bg-emerald-500/20 text-emerald-400{% endif %}">
+                                    {{ analysis.get_risk_level_display }}
+                                </span>
+                            </td>
+                            <td class="py-3 pr-4">
+                                <span class="text-xs">{{ analysis.amplification_risk|floatformat:1 }}%</span>
+                            </td>
+                            <td class="py-3 text-xs text-dark-500">{{ analysis.analyzed_at|timesince }} ago</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="py-8 text-center text-dark-500">No analyses yet. Analyze content or fetch news to get started!</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </main>
 {% endblock %}
@@ -250,5 +337,167 @@
             window.location.href = '/accounts/logout/';
         }
     }
+
+    // Analyze content
+    async function analyzeContent() {
+        const title = document.getElementById('contentTitle').value.trim();
+        const text = document.getElementById('contentText').value.trim();
+        const url = document.getElementById('contentUrl').value.trim();
+
+        if (!title || !text) {
+            alert('Please enter both title and content text');
+            return;
+        }
+
+        const resultDiv = document.getElementById('analysisResult');
+        resultDiv.className = 'mt-6 p-4 rounded-xl border border-indigo-500/20 bg-indigo-500/5';
+        resultDiv.innerHTML = '<div class="text-center"><div class="animate-spin w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full mx-auto"></div><p class="text-white mt-2">Analyzing content...</p></div>';
+        resultDiv.classList.remove('hidden');
+
+        try {
+            const response = await fetch('/api/analyze/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    title: title,
+                    text: text,
+                    url: url,
+                    source_name: url ? new URL(url).hostname : 'User Input'
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                const results = data.results;
+                const riskLevel = results.risk_level || 'low';
+                const misinfoLikelihood = results.misinformation_likelihood || 0;
+                const credScore = results.credibility_score || 0;
+                const impactScore = results.societal_impact_score || 0;
+                const ampRisk = results.amplification_risk || 0;
+                const estReach = results.estimated_reach || 0;
+                const confidence = results.confidence || 0;
+                const explanation = results.explanation || 'No explanation available.';
+                const factChecks = results.fact_checks || [];
+
+                const riskClass = riskLevel === 'critical' ? 'rose' : 
+                                 riskLevel === 'high' ? 'amber' : 
+                                 riskLevel === 'medium' ? 'blue' : 'emerald';
+                
+                resultDiv.className = `mt-6 p-6 rounded-xl border border-${riskClass}-500/20 bg-${riskClass}-500/5`;
+                resultDiv.innerHTML = `
+                    <div class="flex items-start justify-between mb-4">
+                        <h3 class="text-lg font-bold text-white">Analysis Results</h3>
+                        <span class="px-3 py-1 rounded-lg bg-${riskClass}-500/20 text-${riskClass}-400 text-sm font-medium">${riskLevel.toUpperCase()} RISK</span>
+                    </div>
+                    
+                    <div class="grid md:grid-cols-3 gap-4 mb-4">
+                        <div class="p-3 rounded-lg bg-white/5">
+                            <div class="text-xs text-dark-400 mb-1">Misinformation Likelihood</div>
+                            <div class="text-2xl font-bold text-white">${(misinfoLikelihood * 100).toFixed(1)}%</div>
+                        </div>
+                        <div class="p-3 rounded-lg bg-white/5">
+                            <div class="text-xs text-dark-400 mb-1">Credibility Score</div>
+                            <div class="text-2xl font-bold text-white">${(credScore * 100).toFixed(1)}%</div>
+                        </div>
+                        <div class="p-3 rounded-lg bg-white/5">
+                            <div class="text-xs text-dark-400 mb-1">Societal Impact</div>
+                            <div class="text-2xl font-bold text-white">${impactScore}/10</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <div class="text-sm font-medium text-dark-300 mb-2">Amplification Risk</div>
+                        <div class="w-full bg-white/5 rounded-full h-2">
+                            <div class="bg-gradient-to-r from-indigo-500 to-violet-500 h-2 rounded-full" style="width: ${(ampRisk * 100)}%"></div>
+                        </div>
+                        <div class="text-xs text-dark-400 mt-1">${(ampRisk * 100).toFixed(1)}% - Est. reach: ${estReach.toLocaleString()} people</div>
+                    </div>
+                    
+                    <div class="p-4 rounded-lg bg-white/5 mb-4">
+                        <div class="text-sm font-medium text-white mb-2">🤖 AI Explanation</div>
+                        <p class="text-sm text-dark-300">${explanation}</p>
+                        <div class="text-xs text-dark-500 mt-2">Confidence: ${(confidence * 100).toFixed(1)}%</div>
+                    </div>
+                    
+                    ${factChecks.length > 0 ? `
+                        <div class="mt-4">
+                            <div class="text-sm font-medium text-white mb-2">✅ Fact-Check Results</div>
+                            <div class="space-y-2">
+                                ${factChecks.slice(0, 3).map(fc => {
+                                    const rating = (fc.rating || 'Unrated').toLowerCase();
+                                    const ratingColor = rating.includes('false') ? 'rose' : rating.includes('true') ? 'emerald' : 'amber';
+                                    return `
+                                    <div class="p-3 rounded-lg bg-white/5">
+                                        <div class="text-xs text-dark-400">${fc.publisher || 'Unknown'}</div>
+                                        <div class="text-sm text-white font-medium">${fc.claim_text || 'No claim text'}</div>
+                                        <div class="text-sm text-${ratingColor}-400 mt-1">Rating: ${fc.rating || 'Unrated'}</div>
+                                        ${fc.url ? `<a href="${fc.url}" target="_blank" class="text-xs text-indigo-400 hover:text-indigo-300">View source →</a>` : ''}
+                                    </div>`;
+                                }).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                `;
+            } else {
+                resultDiv.className = 'mt-6 p-4 rounded-xl border border-rose-500/20 bg-rose-500/5';
+                resultDiv.innerHTML = `<p class="text-rose-400">Error: ${data.error}</p>`;
+            }
+        } catch (error) {
+            resultDiv.className = 'mt-6 p-4 rounded-xl border border-rose-500/20 bg-rose-500/5';
+            resultDiv.innerHTML = `<p class="text-rose-400">Error analyzing content: ${error.message}</p>`;
+        }
+    }
+
+    // Fetch news articles
+    async function fetchNewsArticles() {
+        const button = event.target;
+        const originalText = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<span class="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span> Fetching...';
+
+        try {
+            const response = await fetch('/api/fetch-news/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    auto_analyze: true
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                alert(`Successfully fetched ${data.articles_found} articles!\n${data.articles_analyzed} analyzed for misinformation.`);
+                location.reload();
+            } else {
+                alert('Error fetching news: ' + data.error);
+            }
+        } catch (error) {
+            alert('Error: ' + error.message);
+        } finally {
+            button.disabled = false;
+            button.innerHTML = originalText;
+        }
+    }
+
+    // Auto-refresh alerts every 30 seconds
+    setInterval(async () => {
+        try {
+            const response = await fetch('/api/alerts/?limit=5');
+            const data = await response.json();
+            
+            if (data.success && data.alerts.length > 0) {
+                // Update alerts UI if needed
+                console.log('Alerts updated:', data.alerts.length);
+            }
+        } catch (error) {
+            console.error('Error fetching alerts:', error);
+        }
+    }, 30000);
 </script>
 {% endblock %}

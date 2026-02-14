@@ -6,4 +6,10 @@ app_name = 'core'
 urlpatterns = [
     path('', views.landing_page, name='landing'),
     path('dashboard/', views.dashboard, name='dashboard'),
+    
+    # API endpoints
+    path('api/analyze/', views.analyze_content_api, name='analyze_content'),
+    path('api/fetch-news/', views.fetch_news_api, name='fetch_news'),
+    path('api/alerts/', views.get_alerts_api, name='get_alerts'),
+    path('api/stats/', views.get_stats_api, name='get_stats'),
 ]
