@@ -256,61 +256,60 @@ Plain text only, no markdown."""
         topics = ", ".join(affected_topics) if affected_topics else "General"
 
         system_prompt = (
-            "You are SatyaSetu AI — a misinformation forecasting expert. "
-            "Given an analysis of content, predict 3 plausible future scenarios "
-            "with probability percentages that sum to 100%. "
-            "Think about viral spread, official responses, fact-checker actions, "
-            "platform moderation, and public reaction. "
-            "You MUST respond ONLY with valid JSON, no markdown, no code fences."
+            "You are SatyaSetu AI — a misinformation analysis expert. "
+            "Your job is to look at analyzed content and give exactly 3 possible CONCLUSIONS about what this content actually is. "
+            "Each conclusion is a different interpretation of the content's true nature. "
+            "For example: 'It's a Marketing Stunt', 'It's Genuine News', 'It's Fabricated Misinformation', 'It's Satire Taken Out of Context', etc. "
+            "Each conclusion must be specific to THIS content, not generic. "
+            "You MUST respond ONLY with valid JSON, no markdown, no code fences, no extra text."
         )
 
-        user_prompt = f"""Based on this misinformation analysis, predict what will happen next.
+        user_prompt = f"""Analyze this content and provide 3 possible conclusions about what it really is.
 
-CONTENT: {title}
-ANALYSIS SUMMARY: {text[:500]}
+CONTENT TITLE: {title}
+ANALYSIS DETAILS: {text[:500]}
 RISK LEVEL: {risk_level.upper()}
 MISINFORMATION LIKELIHOOD: {pct}%
 CONFIDENCE: {round(confidence * 100)}%
 WEB CONSENSUS: {web_consensus}
 FACT-CHECKS FOUND: {fact_check_count}
-SENSITIVE TOPICS: {topics}
+TOPICS: {topics}
 
-Generate exactly 3 future scenarios. Respond in this exact JSON format:
+Provide exactly 3 conclusions. Each conclusion is a clear verdict about what this content most likely IS.
+Respond in this exact JSON format:
 {{
-    "timeframe": "7-14 days",
     "scenarios": [
         {{
-            "title": "Short scenario title (3-6 words)",
-            "description": "2-3 sentence description of what happens in this scenario",
+            "title": "Short conclusion (2-5 words)",
+            "description": "One concise sentence explaining why.",
             "probability": 45
         }},
         {{
-            "title": "Short scenario title",
-            "description": "2-3 sentence description",
+            "title": "Second conclusion",
+            "description": "One concise sentence explaining why.",
             "probability": 35
         }},
         {{
-            "title": "Short scenario title",
-            "description": "2-3 sentence description",
+            "title": "Third conclusion",
+            "description": "One concise sentence explaining why.",
             "probability": 20
         }}
     ],
-    "summary": "One sentence overall assessment of the most likely trajectory"
+    "summary": "One sentence stating the most likely conclusion."
 }}
 
 Rules:
-- Probabilities must sum to exactly 100
-- Scenarios should be distinct and realistic
-- Consider the risk level and consensus when assigning probabilities
-- If misinformation likelihood is high, weight scenarios toward viral spread and debunking
-- If low, weight toward fading from attention or being confirmed
-- Be specific and actionable, not generic
-- Return ONLY the JSON object, nothing else"""
+- Probabilities MUST sum to exactly 100
+- The highest probability conclusion should align with the risk level and web consensus
+- Titles must be 2-5 words, specific to THIS content (e.g. 'Marketing Stunt', 'Genuine Report', 'Fabricated Clickbait')
+- Each description must be ONE sentence only, max 30 words
+- Do NOT include timeframe or any extra fields
+- Return ONLY the JSON"""
 
         raw = self._call_groq([
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
-        ], temperature=0.4, max_tokens=600)
+        ], temperature=0.4, max_tokens=900)
 
         if not raw:
             logger.error("Forecast: Groq returned empty response")
