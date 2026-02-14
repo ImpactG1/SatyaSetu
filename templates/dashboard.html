@@ -294,9 +294,9 @@
                             <td class="py-3 pr-4">
                                 <div class="flex items-center gap-2">
                                     <div class="w-16 bg-white/5 rounded-full h-1.5">
-                                        <div class="h-1.5 rounded-full {% if analysis.misinformation_likelihood > 0.7 %}bg-rose-500{% elif analysis.misinformation_likelihood > 0.4 %}bg-amber-500{% else %}bg-emerald-500{% endif %}" style="width: {{ analysis.misinformation_likelihood|floatformat:0 }}%"></div>
+                                        <div class="h-1.5 rounded-full {% if analysis.misinformation_likelihood > 0.7 %}bg-rose-500{% elif analysis.misinformation_likelihood > 0.4 %}bg-amber-500{% else %}bg-emerald-500{% endif %}" style="width: {% widthratio analysis.misinformation_likelihood 1 100 %}%"></div>
                                     </div>
-                                    <span class="text-xs">{{ analysis.misinformation_likelihood|floatformat:1 }}%</span>
+                                    <span class="text-xs">{% widthratio analysis.misinformation_likelihood 1 100 %}%</span>
                                 </div>
                             </td>
                             <td class="py-3 pr-4">
@@ -313,7 +313,7 @@
                                 </span>
                             </td>
                             <td class="py-3 pr-4">
-                                <span class="text-xs">{{ analysis.amplification_risk|floatformat:1 }}%</span>
+                                <span class="text-xs">{% widthratio analysis.amplification_risk 1 100 %}%</span>
                             </td>
                             <td class="py-3 text-xs text-dark-500">{{ analysis.analyzed_at|timesince }} ago</td>
                         </tr>
