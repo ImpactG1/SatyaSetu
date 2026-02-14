@@ -1,0 +1,254 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard - MisInfoShield{% endblock %}
+
+{% block content %}
+<!-- Dashboard Navigation -->
+<nav class="fixed top-0 left-0 right-0 z-50 glass bg-dark-950/80">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-16">
+            <a href="/" class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-400 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                    </svg>
+                </div>
+                <span class="text-lg font-bold"><span class="text-white">MisInfo</span><span class="gradient-text">Shield</span></span>
+            </a>
+
+            <div class="flex items-center gap-4">
+                <!-- User Info -->
+                <div class="flex items-center gap-3">
+                    {% if user_avatar %}
+                    <img src="{{ user_avatar }}" alt="Avatar" class="w-8 h-8 rounded-full ring-2 ring-indigo-500/30">
+                    {% else %}
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-sm font-bold text-white">
+                        {{ user_initial }}
+                    </div>
+                    {% endif %}
+                    <span class="hidden sm:block text-sm font-medium text-dark-300">{{ user_email }}</span>
+                </div>
+                <!-- Logout -->
+                <button onclick="handleLogout()" class="px-4 py-2 rounded-lg text-sm font-medium text-dark-400 hover:text-white hover:bg-white/5 transition-all">
+                    Sign Out
+                </button>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- Main Content -->
+<main class="pt-24 pb-16 min-h-screen relative">
+    <div class="absolute inset-0 mesh-gradient opacity-30"></div>
+    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Welcome -->
+        <div class="mb-10">
+            <h1 class="text-3xl sm:text-4xl font-bold text-white mb-2">
+                Welcome back, <span class="gradient-text">{{ user_name }}</span>
+            </h1>
+            <p class="text-dark-400">Here's your misinformation intelligence overview.</p>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div class="glass rounded-2xl p-6 card-hover">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                    </div>
+                    <span class="text-xs font-medium text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-lg">+12%</span>
+                </div>
+                <div class="text-2xl font-bold text-white">1,247</div>
+                <div class="text-sm text-dark-400 mt-1">Sources Monitored</div>
+            </div>
+
+            <div class="glass rounded-2xl p-6 card-hover">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-10 h-10 rounded-xl bg-rose-500/10 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                    </div>
+                    <span class="text-xs font-medium text-rose-400 bg-rose-500/10 px-2 py-1 rounded-lg">3 critical</span>
+                </div>
+                <div class="text-2xl font-bold text-white">23</div>
+                <div class="text-sm text-dark-400 mt-1">Threats Detected</div>
+            </div>
+
+            <div class="glass rounded-2xl p-6 card-hover">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                        </svg>
+                    </div>
+                    <span class="text-xs font-medium text-amber-400 bg-amber-500/10 px-2 py-1 rounded-lg">High</span>
+                </div>
+                <div class="text-2xl font-bold text-white">7.8</div>
+                <div class="text-sm text-dark-400 mt-1">Avg Risk Score</div>
+            </div>
+
+            <div class="glass rounded-2xl p-6 card-hover">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <span class="text-xs font-medium text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-lg">98.2%</span>
+                </div>
+                <div class="text-2xl font-bold text-white">156</div>
+                <div class="text-sm text-dark-400 mt-1">Verified Clean</div>
+            </div>
+        </div>
+
+        <!-- Main Dashboard Area -->
+        <div class="grid lg:grid-cols-3 gap-6">
+            <!-- Recent Alerts -->
+            <div class="lg:col-span-2 glass rounded-2xl p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-lg font-bold text-white">Recent Alerts</h2>
+                    <span class="text-xs text-dark-500">Last 24 hours</span>
+                </div>
+                <div class="space-y-4">
+                    <div class="flex items-start gap-4 p-4 rounded-xl bg-rose-500/5 border border-rose-500/10">
+                        <div class="w-2 h-2 rounded-full bg-rose-500 mt-2 flex-shrink-0"></div>
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-sm font-semibold text-white">Critical: Health Misinformation Campaign</span>
+                                <span class="px-2 py-0.5 rounded-md bg-rose-500/20 text-rose-400 text-xs font-medium">Critical</span>
+                            </div>
+                            <p class="text-sm text-dark-400">Coordinated campaign spreading false vaccine information across 12 platforms. Impact score: 9.2/10</p>
+                            <span class="text-xs text-dark-500 mt-2 block">2 hours ago · Twitter, Facebook, Telegram</span>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start gap-4 p-4 rounded-xl bg-amber-500/5 border border-amber-500/10">
+                        <div class="w-2 h-2 rounded-full bg-amber-500 mt-2 flex-shrink-0"></div>
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-sm font-semibold text-white">Financial Manipulation Detected</span>
+                                <span class="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-400 text-xs font-medium">High</span>
+                            </div>
+                            <p class="text-sm text-dark-400">Fabricated earnings report circulating on financial forums. Potential market impact detected.</p>
+                            <span class="text-xs text-dark-500 mt-2 block">5 hours ago · Reddit, StockTwits</span>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start gap-4 p-4 rounded-xl bg-blue-500/5 border border-blue-500/10">
+                        <div class="w-2 h-2 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-sm font-semibold text-white">Political Deepfake Flagged</span>
+                                <span class="px-2 py-0.5 rounded-md bg-blue-500/20 text-blue-400 text-xs font-medium">Medium</span>
+                            </div>
+                            <p class="text-sm text-dark-400">AI-generated video of public figure detected. Viral amplification probability: 67%</p>
+                            <span class="text-xs text-dark-500 mt-2 block">8 hours ago · YouTube, Twitter</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Side Panel -->
+            <div class="space-y-6">
+                <!-- Risk Meter -->
+                <div class="glass rounded-2xl p-6">
+                    <h2 class="text-lg font-bold text-white mb-6">Threat Level</h2>
+                    <div class="relative w-40 h-40 mx-auto mb-6">
+                        <svg class="w-full h-full -rotate-90" viewBox="0 0 120 120">
+                            <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="12"/>
+                            <circle cx="60" cy="60" r="50" fill="none" stroke="url(#riskGradient)" stroke-width="12" stroke-linecap="round" stroke-dasharray="314" stroke-dashoffset="94"/>
+                            <defs>
+                                <linearGradient id="riskGradient">
+                                    <stop offset="0%" stop-color="#f59e0b"/>
+                                    <stop offset="100%" stop-color="#ef4444"/>
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                        <div class="absolute inset-0 flex flex-col items-center justify-center">
+                            <span class="text-3xl font-bold text-white">7.8</span>
+                            <span class="text-xs text-dark-400">/ 10</span>
+                        </div>
+                    </div>
+                    <div class="text-center">
+                        <span class="px-3 py-1 rounded-lg bg-amber-500/10 text-amber-400 text-sm font-medium">Elevated Risk</span>
+                    </div>
+                </div>
+
+                <!-- Active Clusters -->
+                <div class="glass rounded-2xl p-6">
+                    <h2 class="text-lg font-bold text-white mb-4">Active Clusters</h2>
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between p-3 rounded-xl bg-white/5">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-rose-500/10 flex items-center justify-center">
+                                    <span class="text-xs font-bold text-rose-400">#1</span>
+                                </div>
+                                <div>
+                                    <div class="text-sm font-medium text-white">Anti-Vax Network</div>
+                                    <div class="text-xs text-dark-500">847 nodes</div>
+                                </div>
+                            </div>
+                            <div class="flex h-6 gap-0.5">
+                                <div class="w-1 bg-rose-500 rounded-full" style="height:100%"></div>
+                                <div class="w-1 bg-rose-500 rounded-full" style="height:80%"></div>
+                                <div class="w-1 bg-rose-500 rounded-full" style="height:90%"></div>
+                                <div class="w-1 bg-rose-400 rounded-full" style="height:60%"></div>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between p-3 rounded-xl bg-white/5">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                                    <span class="text-xs font-bold text-amber-400">#2</span>
+                                </div>
+                                <div>
+                                    <div class="text-sm font-medium text-white">Crypto Scam Ring</div>
+                                    <div class="text-xs text-dark-500">523 nodes</div>
+                                </div>
+                            </div>
+                            <div class="flex h-6 gap-0.5">
+                                <div class="w-1 bg-amber-500 rounded-full" style="height:70%"></div>
+                                <div class="w-1 bg-amber-500 rounded-full" style="height:85%"></div>
+                                <div class="w-1 bg-amber-400 rounded-full" style="height:50%"></div>
+                                <div class="w-1 bg-amber-400 rounded-full" style="height:65%"></div>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between p-3 rounded-xl bg-white/5">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                                    <span class="text-xs font-bold text-blue-400">#3</span>
+                                </div>
+                                <div>
+                                    <div class="text-sm font-medium text-white">Election Disinfo</div>
+                                    <div class="text-xs text-dark-500">312 nodes</div>
+                                </div>
+                            </div>
+                            <div class="flex h-6 gap-0.5">
+                                <div class="w-1 bg-blue-500 rounded-full" style="height:50%"></div>
+                                <div class="w-1 bg-blue-500 rounded-full" style="height:65%"></div>
+                                <div class="w-1 bg-blue-400 rounded-full" style="height:45%"></div>
+                                <div class="w-1 bg-blue-400 rounded-full" style="height:55%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    async function handleLogout() {
+        try {
+            await supabaseClient.auth.signOut();
+            window.location.href = '/accounts/logout/';
+        } catch (err) {
+            window.location.href = '/accounts/logout/';
+        }
+    }
+</script>
+{% endblock %}

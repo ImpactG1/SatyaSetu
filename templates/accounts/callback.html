@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% block title %}Authenticating... - MisInfoShield{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center relative overflow-hidden">
+    <div class="absolute inset-0 mesh-gradient"></div>
+    <div class="relative z-10 text-center">
+        <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-cyan-400 flex items-center justify-center mx-auto mb-6 animate-pulse">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+            </svg>
+        </div>
+        <h2 class="text-2xl font-bold text-white mb-2">Authenticating...</h2>
+        <p class="text-dark-400">Please wait while we verify your identity.</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    async function handleCallback() {
+        try {
+            // Get the session from the URL hash (Supabase OAuth redirect)
+            const { data: { session }, error } = await supabaseClient.auth.getSession();
+
+            if (error) throw error;
+
+            if (session) {
+                // Send to Django backend
+                const response = await fetch('/accounts/auth/callback/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        access_token: session.access_token,
+                        refresh_token: session.refresh_token,
+                        user: {
+                            id: session.user.id,
+                            email: session.user.email,
+                            user_metadata: session.user.user_metadata
+                        }
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    window.location.href = '/dashboard/';
+                } else {
+                    window.location.href = '/accounts/login/?error=' + encodeURIComponent(result.error || 'Authentication failed');
+                }
+            } else {
+                window.location.href = '/accounts/login/?error=no_session';
+            }
+        } catch (err) {
+            console.error('Callback error:', err);
+            window.location.href = '/accounts/login/?error=' + encodeURIComponent(err.message || 'Authentication failed');
+        }
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Run on page load
+    handleCallback();
+</script>
+{% endblock %}
