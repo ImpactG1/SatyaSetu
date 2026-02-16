@@ -281,15 +281,7 @@
                 <span class="text-lg font-bold text-white tracking-tight">SatyaSetu</span>
             </a>
             <div class="flex items-center gap-4">
-                <div class="flex items-center gap-3">
-                    {% if user_avatar %}
-                    <img src="{{ user_avatar }}" alt="Avatar" class="w-8 h-8 rounded-full ring-2 ring-indigo-500/30">
-                    {% else %}
-                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-sm font-bold text-white">{{ user_initial }}</div>
-                    {% endif %}
-                    <span class="hidden sm:block text-sm font-medium text-dark-300">{{ user_email }}</span>
-                </div>
-                <button onclick="handleLogout()" class="px-4 py-2 rounded-lg text-sm font-medium text-dark-400 hover:text-white hover:bg-white/5 transition-all">Sign Out</button>
+                <a href="/" class="px-4 py-2 rounded-lg text-sm font-medium text-dark-400 hover:text-white hover:bg-white/5 transition-all">Home</a>
             </div>
         </div>
     </div>
@@ -302,8 +294,8 @@
 
         <!-- Welcome Header -->
         <div class="mb-8">
-            <h1 class="text-3xl sm:text-4xl font-extrabold text-white mb-2 page-title">Welcome back, <span class="text-indigo-400">{{ user_name }}</span></h1>
-            <p class="text-dark-400 text-sm page-subtitle">Misinformation Intelligence Command Center</p>
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-white mb-2 page-title">Misinformation <span class="text-indigo-400">Intelligence</span></h1>
+            <p class="text-dark-400 text-sm page-subtitle">Command Center</p>
         </div>
 
         <!-- ═══════════ SECTION 1: Stats Overview ═══════════ -->
@@ -776,11 +768,7 @@
 
 {% block extra_js %}
 <script>
-// ──────── Auth ────────
-async function handleLogout() {
-    try { await supabaseClient.auth.signOut(); } catch(e) {}
-    window.location.href = '/accounts/logout/';
-}
+
 
 // ──────── Threat Gauge Animation ────────
 document.addEventListener('DOMContentLoaded', () => {

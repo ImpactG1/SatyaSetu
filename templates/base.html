@@ -109,12 +109,7 @@
 <body class="bg-dark-950 text-white antialiased">
     {% block content %}{% endblock %}
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        const SUPABASE_URL = '{{ supabase_url }}';
-        const SUPABASE_ANON_KEY = '{{ supabase_anon_key }}';
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
         // CSRF Token helper for API calls
         function getCookie(name) {
             let cookieValue = null;
